@@ -2,6 +2,7 @@ import tactic
 import order.antichain 
 import order.minimal
 import order.upper_lower 
+import order.lattice_intervals
 
 universes u_1 u_2
 
@@ -61,4 +62,9 @@ begin
     λ h, ⟨⟨x,h,rfl.le⟩,λ b y hy hby hxy, _⟩⟩,  
   have : y = x := by_contra (λ h_eq, hS hy h h_eq (hby.trans hxy)), 
   exact (this.subst hby).antisymm hxy, 
-end 
+end
+
+
+
+open set
+
