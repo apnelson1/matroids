@@ -9,27 +9,23 @@ noncomputable theory
 
 variables {α : Type u_1} {β : Type u_2}  {s t : set α}
 
-lemma disjoint.mem_inter_elim {γ : Sort*} {x : α} (hst : disjoint s t) (hx : x ∈ s ∩ t) : γ := 
-(set.not_mem_empty _ ((set.disjoint_iff_inter_eq_empty.mp hst).subst hx)).elim 
+-- lemma disjoint.mem_inter_elim {γ : Sort*} {x : α} (hst : disjoint s t) (hx : x ∈ s ∩ t) : γ := 
+-- (set.not_mem_empty _ ((set.disjoint_iff_inter_eq_empty.mp hst).subst hx)).elim 
 
 lemma disjoint_iff_le_compl_right [boolean_algebra α] {s t : α}: disjoint s t ↔ s ≤ tᶜ := 
-by rw is_compl.disjoint_left_iff is_compl_compl
+by {rw is_compl.disjoint_left_iff is_compl_compl}
 
 lemma disjoint_iff_le_compl_left [boolean_algebra α] {s t : α}: disjoint s t ↔ t ≤ sᶜ := 
 by rw [disjoint.comm, disjoint_iff_le_compl_right]
 
-lemma compl_le_comm [boolean_algebra α] {s t : α} : sᶜ ≤ t ↔ tᶜ ≤ s := 
-by {nth_rewrite 0 ←compl_compl t, nth_rewrite 1 ←compl_compl s,
-  rw [←disjoint_iff_le_compl_left, disjoint_iff_le_compl_right]}
-
-@[simp] lemma mem_compl_image [boolean_algebra α] {a : α} {s : set α}: a ∈ compl '' s ↔ aᶜ ∈ s := 
+lemma mem_compl_image' [boolean_algebra α] {a : α} {s : set α}: a ∈ compl '' s ↔ aᶜ ∈ s := 
 begin
   rw [set.mem_image], 
   exact ⟨λ h, exists.elim h (λ x hx, by {rw [←hx.2, compl_compl], exact hx.1}), 
     λ h, ⟨_,h,compl_compl _⟩⟩, 
 end 
 
-@[simp] lemma compl_compl_image [boolean_algebra α] {s : set α} : compl '' (compl '' s) = s := 
+@[simp] lemma compl_compl_image' [boolean_algebra α] {s : set α} : compl '' (compl '' s) = s := 
 by {ext, simp}
 
 lemma is_antichain.img_iso [has_le α] [has_le β] (hs : is_antichain (≤) s) (φ : order_iso α β) :
@@ -45,7 +41,7 @@ lemma is_antichain.img_compl [boolean_algebra α] (hs : is_antichain (≤) s):
   is_antichain (≤) (compl '' s) :=
 (hs.img_iso (order_iso.compl α)).flip
 
-lemma is_antichain.max_lower_set_of [partial_order α] (hs : is_antichain (≤) s):
+lemma is_antichain.max_lower_set_of [partial_order α] (hs : is_antichain (≤) s) :
   maximals (≤) {x | ∃ y ∈ s, x ≤ y} = s :=
 begin
   ext x, 
@@ -56,7 +52,7 @@ begin
   exact hxy.antisymm (this.symm.subst hby), 
 end 
 
-lemma is_antichain.min_upper_set_of [partial_order α] (hS : is_antichain (≤) s):
+lemma is_antichain.min_upper_set_of [partial_order α] (hS : is_antichain (≤) s) :
   minimals (≤) {x | ∃ y ∈ s, y ≤ x} = s :=
 begin
   ext x, 
