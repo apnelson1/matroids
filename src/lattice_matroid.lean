@@ -5,6 +5,7 @@ Author: Peter Nelson.
 -/
 import tactic 
 import .prop_lemmas
+import .lattice_intervals'
 import order.lattice_intervals
 
 /-!
