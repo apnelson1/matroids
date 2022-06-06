@@ -9,75 +9,74 @@ import .lattice_intervals'
 import order.lattice_intervals
 
 /-!
-# lattice_matroids 
+# supermatroids 
 
-In this file we define a `lattice_matroid`, namely a nonempty `lower_set` in a `semilattice_sup`
+In this file we define a `supermatroid`, namely a nonempty `lower_set` in a `semilattice_sup`
 that satisfies certain augmentation axioms; its members are 'independent'. 
 
 Lattice matroids do not appear in the literature, but ...
-The definition and theory below is for lattice_matroids on an arbitrary type `E`, though most of the 
-literature on lattice_matroids deals with the finite case. 
+The definition and theory below is for supermatroids on an arbitrary type `E`, though most of the 
+literature on supermatroids deals with the finite case. 
 
 ## Main content
 
 - `indep`, `dep`, `coindep`, `basis`, `circuit`, `spanning` : predicates of the form `α → Prop`
-  for various lattice_matroid properties on sets. Defining these as predicates enables dot notation, but
+  for various supermatroid properties on sets. Defining these as predicates enables dot notation, but
   most also have an alternative `set α` version which can work more smoothly with some parts
   of mathlib. 
-- `lattice_matroid.dual` : the dual lattice_matroid of a lattice_matroid `M`; its bases are the complements of the bases
+- `supermatroid.dual` : the dual supermatroid of a supermatroid `M`; its bases are the complements of the bases
   of `M`. 
 - `dual_dual`    : duality is idempotent. 
 
 ## References
 
 
-TODO : rank, circuits, theory for finite lattice_matroids, etc etc. 
+TODO : rank, circuits, theory for finite supermatroids, etc etc. 
 -/
 
 
 universes u v
  
-def lattice_matroid.extensible {α : Type u} [preorder α] (s : set α) : Prop := 
+def supermatroid.extensible {α : Type u} [preorder α] (s : set α) : Prop := 
   ∀ (a ∈ s) b, a ≤ b → (maximals (≤) ((set.Icc a b) ∩ s)).nonempty
 
-def lattice_matroid.augmentable {α : Type u} [semilattice_sup α] (s : set α) : Prop := 
+def supermatroid.augmentable {α : Type u} [semilattice_sup α] (s : set α) : Prop := 
   ∀ (a ∈ s) b, (a ∉ maximals (≤) s) → (b ∈ maximals (≤) s) → ((set.Ioc a (a ⊔ b)) ∩ s).nonempty 
 
 open set 
 
-@[ext] structure lattice_matroid (α : Type u) [semilattice_sup α] := 
+@[ext] structure supermatroid (α : Type u) [semilattice_sup α] := 
 (ind           : set α)
 (ind_nonempty  : ind.nonempty ) 
 (ind_lower_set : is_lower_set ind)
-(ind_augment   : lattice_matroid.augmentable ind)
-(ind_extension : lattice_matroid.extensible ind)
+(ind_augment   : supermatroid.augmentable ind)
+(ind_extension : supermatroid.extensible ind)
 
-namespace lattice_matroid 
-
-variables {α : Type u} {i j b x y c : α} 
+namespace supermatroid 
 
 section basic 
 
-variables [distrib_lattice α] [bounded_order α] {M : lattice_matroid α} 
+variables {α : Type u} [distrib_lattice α] [bounded_order α] {M : supermatroid α} 
+  {i j b x y c d r : α}
 
-def indep (M : lattice_matroid α) : α → Prop:= M.ind
+def indep (M : supermatroid α) : α → Prop := M.ind
 
-def dep (M : lattice_matroid α) := λ x,¬ M.indep x 
+def dep (M : supermatroid α) := λ x,¬ M.indep x 
 
-def bases (M : lattice_matroid α) : set α := 
+def bases (M : supermatroid α) : set α := 
   maximals (≤) M.ind
 
-def basis (M : lattice_matroid α) : α → Prop := M.bases
+def basis (M : supermatroid α) : α → Prop := M.bases
 
-def basis_of (M : lattice_matroid α) : α → α → Prop := 
+def basis_of (M : supermatroid α) : α → α → Prop := 
   λ b x, b ∈ maximals (≤) (λ Z, Z ≤ x ∧ M.indep Z)
 
-def circuits (M : lattice_matroid α) : set α := 
+def circuits (M : supermatroid α) : set α := 
   minimals (≤) M.indᶜ 
 
-def circuit (M : lattice_matroid α) : α → Prop := M.circuits 
+def circuit (M : supermatroid α) : α → Prop := M.circuits 
 
-def spanning (M : lattice_matroid α) (x : α) := 
+def spanning (M : supermatroid α) (x : α) := 
   ∃ b, b ≤ x ∧ M.basis b
 
 @[simp] lemma mem_ind_iff : i ∈ M.ind ↔ M.indep i := iff.rfl   
@@ -93,7 +92,7 @@ hi.indep_of_le inf_le_right
 lemma indep.inf_right_indep (hi : M.indep i) (x : α) : M.indep (i ⊓ x) := 
 hi.indep_of_le inf_le_left
 
-lemma bot_indep (M : lattice_matroid α): M.indep ⊥ := 
+lemma bot_indep (M : supermatroid α): M.indep ⊥ := 
 exists.elim M.ind_nonempty (λ a (ha : M.indep a), ha.indep_of_le bot_le)
 
 lemma indep.not_dep (hi : M.indep i) : ¬ M.dep i := 
@@ -169,7 +168,7 @@ lemma basis.lt_not_basis (hb : M.basis b) (hbx : b < x) : ¬ M.basis x :=
 lemma basis.not_basis_of_lt (hb : M.basis b) (hxb : x < b) : ¬ M.basis x := 
 λ h, (h.lt_not_basis hxb) hb 
 
-lemma basis_antichain (M : lattice_matroid α): is_antichain (≤) M.basis :=
+lemma basis_antichain (M : supermatroid α): is_antichain (≤) M.basis :=
 λ x hx y hy hxy h, hy.not_basis_of_lt (lt_of_le_of_ne h hxy) hx
 
 lemma circuit.not_indep (hc : M.circuit c) : ¬ M.indep c := hc.1 
@@ -179,7 +178,7 @@ lemma circuit.dep (hc : M.circuit c) : M.dep c := hc.1
 lemma circuit.indep_of_lt (hC : M.circuit c) (hiC : i < c) : M.indep i := 
   by_contra (λ h, (hiC.ne.symm) (hC.2 h hiC.le))
 
-lemma exists_basis_of (M : lattice_matroid α) (x : α) : ∃ i, M.basis_of i x :=
+lemma exists_basis_of (M : supermatroid α) (x : α) : ∃ i, M.basis_of i x :=
 exists.elim (M.bot_indep.extension (@bot_le _ _ _ x)) (λ a ha, ⟨a, ha.2⟩)
 
 lemma indep.augment (hi : M.indep i) (hi_nb : ¬M.basis i) (hj : M.basis j) : 
@@ -199,13 +198,13 @@ lemma indep.extend_to_sup_basis {i b : α} (hi: M.indep i) (hb : M.basis b) :
 exists.elim (hi.extension (@le_sup_left _ _ i b)) 
   (λ b' h, ⟨b',⟨h.2.basis ⟨b, le_sup_right, hb⟩,h.1,h.2.1.1⟩⟩)
 
-lemma exists_basis (M : lattice_matroid α): ∃ b, M.basis b := 
+lemma exists_basis (M : supermatroid α): ∃ b, M.basis b := 
 begin
   obtain ⟨b, ⟨-,hb⟩⟩ := M.bot_indep.extension (@bot_le α _ _ ⊤), 
   exact ⟨b, hb.indep.basis (λ j hj hbj, hb.eq_of_le_indep hbj le_top hj)⟩, 
 end 
 
-lemma top_spanning (M : lattice_matroid α) : M.spanning ⊤ := 
+lemma top_spanning (M : supermatroid α) : M.spanning ⊤ := 
 exists.elim (M.exists_basis) (λ b hb, ⟨b,le_top,hb⟩)
 
 lemma indep.extends_to_basis (hi : M.indep i) : 
@@ -217,23 +216,23 @@ lemma indep_iff_le_basis :
   M.indep i ↔ ∃ b, i ≤ b ∧ M.basis b := 
 ⟨indep.extends_to_basis, λ h, exists.elim h (λ b hi, hi.2.indep_of_le hi.1)⟩
 
-lemma bases_inj {M₁ M₂ : lattice_matroid α} (hb : M₁.bases = M₂.bases)  : M₁ = M₂ := 
+lemma bases_inj {M₁ M₂ : supermatroid α} (hb : M₁.bases = M₂.bases)  : M₁ = M₂ := 
   by {ext, simp_rw [mem_ind_iff, indep_iff_le_basis, ←mem_bases_iff, hb]}
 
 end basic 
 
 section dual 
 
-variables [boolean_algebra α] {M : lattice_matroid α} 
+variables {α : Type u} [boolean_algebra α] {M : supermatroid α} {i j b x y c d r : α}
 
-def coindep (M : lattice_matroid α) : α → Prop := 
+def coindep (M : supermatroid α) : α → Prop := 
   λ i, ∃ (b : α), (M.basis b ∧ i ≤ bᶜ)
 
-def coind (M : lattice_matroid α) : set α := M.coindep 
+def coind (M : supermatroid α) : set α := M.coindep 
 
-def cobases (M : lattice_matroid α) : set α := maximals (≤) M.coind
+def cobases (M : supermatroid α) : set α := maximals (≤) M.coind
 
-def cobasis (M : lattice_matroid α) : α → Prop := M.cobases
+def cobasis (M : supermatroid α) : α → Prop := M.cobases
 
 @[simp] lemma mem_coind_iff : i ∈ M.coind ↔ M.coindep i := iff.rfl 
 
@@ -245,32 +244,32 @@ hi.indep_of_le (sdiff_le)
 lemma basis.diff_indep (hb : M.basis b) (x : α) : M.indep (b \ x) := 
 hb.indep_of_le (sdiff_le)
 
-lemma cobases_eq_image_compl_bases (M : lattice_matroid α) : 
+lemma cobases_eq_image_compl_bases (M : supermatroid α) : 
   M.cobases = compl '' M.bases := 
 by {convert (M.basis_antichain.img_compl.max_lower_set_of), simpa [cobases]}
 
-lemma coindep_iff (M : lattice_matroid α) : 
+lemma coindep_iff (M : supermatroid α) : 
    M.coindep x ↔ ∃ b, (M.basis b ∧ x ≤ bᶜ) := iff.rfl 
 
 lemma coindep.exists_disj_basis (hi : M.coindep i): ∃ b, M.basis b ∧ disjoint i b := 
   exists.elim hi (λ b hb, ⟨b, hb.1, disjoint_iff_le_compl_right.mpr hb.2⟩)
 
-lemma cobasis_iff_compl_basis (M : lattice_matroid α) :
+lemma cobasis_iff_compl_basis (M : supermatroid α) :
   M.cobasis b ↔ M.basis bᶜ :=
 by {rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_compl_bases ,mem_compl_image']}
 
-lemma bot_coindep (M : lattice_matroid α) : M.coindep ⊥ := 
+lemma bot_coindep (M : supermatroid α) : M.coindep ⊥ := 
 M.coindep_iff.mpr (exists.elim (M.exists_basis) (λ b hb, ⟨b, hb, bot_le⟩))
 
-lemma coindep_nonempty (M : lattice_matroid α) : M.coind.nonempty := ⟨⊥, M.bot_coindep⟩  
+lemma coindep_nonempty (M : supermatroid α) : M.coind.nonempty := ⟨⊥, M.bot_coindep⟩  
 
 lemma coindep.coindep_of_le (hj : M.coindep j) (hij : i ≤ j) : M.coindep i :=
 M.coindep_iff.mpr (exists.elim (M.coindep_iff.mp hj) (λ b hb', ⟨b, hb'.1, hij.trans hb'.2⟩))
 
-lemma coindep_lower_set (M : lattice_matroid α) : 
+lemma coindep_lower_set (M : supermatroid α) : 
 is_lower_set M.coind  := λ i j hij hi, hi.coindep_of_le hij
 
-lemma coind_augment (M : lattice_matroid α) : 
+lemma coind_augment (M : supermatroid α) : 
   augmentable M.coind := 
 begin
   intros i hi j hic_nb hjc_b, 
@@ -290,7 +289,7 @@ begin
   rwa [sdiff_eq, ←compl_sup, compl_le_iff_compl_le, sup_comm] at hjb'', 
 end 
 
-lemma coind_extension (M : lattice_matroid α) : 
+lemma coind_extension (M : supermatroid α) : 
   extensible M.coindep := 
 begin
   rintros i₁ ⟨b,hb_b, hi₁b⟩ x hi₁x,  
@@ -347,22 +346,22 @@ begin
   exact (hi'i''.ne (hi.2 (⟨inf_le_right, hi''i.indep_of_le (inf_le_left) ⟩) hi'i''.le)).elim, 
 end 
 
-def dual (M : lattice_matroid α) : lattice_matroid α := 
+def dual (M : supermatroid α) : supermatroid α := 
 { ind := M.coind,
   ind_nonempty := M.coindep_nonempty,
   ind_lower_set := M.coindep_lower_set,
   ind_augment := M.coind_augment,
   ind_extension := M.coind_extension }
 
-lemma dual_ind_eq (M : lattice_matroid α)  : M.dual.ind = M.coind := rfl 
+lemma dual_ind_eq (M : supermatroid α)  : M.dual.ind = M.coind := rfl 
 
-lemma dual_indep_iff (M : lattice_matroid α) (i : α): M.dual.indep i ↔ M.coindep i := iff.rfl 
+lemma dual_indep_iff (M : supermatroid α) (i : α): M.dual.indep i ↔ M.coindep i := iff.rfl 
 
-lemma dual_basis_iff (M : lattice_matroid α) (b : α) : M.dual.basis b ↔ M.cobasis b := iff.rfl 
+lemma dual_basis_iff (M : supermatroid α) (b : α) : M.dual.basis b ↔ M.cobasis b := iff.rfl 
 
-lemma dual_bases_eq (M : lattice_matroid α) : M.dual.bases = M.cobases := rfl 
+lemma dual_bases_eq (M : supermatroid α) : M.dual.bases = M.cobases := rfl 
 
-@[simp] lemma dual_dual (M : lattice_matroid α) : M.dual.dual = M := 
+@[simp] lemma dual_dual (M : supermatroid α) : M.dual.dual = M := 
 bases_inj (by simp only [dual_bases_eq, cobases_eq_image_compl_bases, compl_compl_image'])
 
 end dual 
@@ -370,17 +369,33 @@ end dual
 
 section iso 
 
-variables {β : Type v} [semilattice_sup α] [semilattice_sup β] {M : lattice_matroid α} 
-  {N : lattice_matroid β}
+variables {α : Type u} {β : Type v} [semilattice_sup α] [semilattice_sup β] {M : supermatroid α} 
+  {N : supermatroid β}
 
-structure lattice_matroid_iso (M : lattice_matroid α) (M' : lattice_matroid β) : Type (max u v) :=
+structure supermatroid_iso (M : supermatroid α) (M' : supermatroid β) : Type (max u v) :=
 (to_equiv  : α ≃o β)
 (on_ind : ∀ a, M.ind a ↔ M'.ind (to_equiv a) )
 
-infix `≃l` :25 := lattice_matroid_iso 
+infix `≃l` :25 := supermatroid_iso 
+
 
 
 
 end iso 
 
-end lattice_matroid 
+section minor
+
+
+
+variables {α : Type u} [distrib_lattice α] [bounded_order α] {M : supermatroid α} {c d r : α}
+
+--def contract {M : supermatroid α} (c : α) (hc : M.indep c) : sorry
+
+
+
+-- #check supermatroid.circuit M
+
+
+end minor 
+
+end supermatroid 

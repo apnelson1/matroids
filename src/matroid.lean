@@ -3,8 +3,7 @@ Copyright (c) 2022 Peter Nelson. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: Peter Nelson.
 -/
-import tactic 
-import .lattice_matroid 
+import .supermatroid 
 import .prop_lemmas
 
 /-!
@@ -38,7 +37,7 @@ universes u v
  
 variables {E : Type u}
 
-def matroid (E : Type u) := lattice_matroid (set E)
+def matroid (E : Type u) := supermatroid (set E)
 
 open set 
 
@@ -157,7 +156,7 @@ lemma univ_spanning (M : matroid E) : M.spanning univ := M.top_spanning
 lemma indep.extends_to_basis (hI : M.indep I) : ∃ B, I ⊆ B ∧ M.basis B := hI.extends_to_basis
 
 lemma indep_iff_subset_basis : M.indep I ↔ ∃ B, I ⊆ B ∧ M.basis B := 
-lattice_matroid.indep_iff_le_basis
+supermatroid.indep_iff_le_basis
 
 lemma bases_inj {M₁ M₂ : matroid E} (hB : M₁.bases = M₂.bases)  : M₁ = M₂ := 
   by {ext, simp_rw [mem_indep_sets_iff, indep_iff_subset_basis, ←mem_bases_iff, hB]}
@@ -168,7 +167,7 @@ section dual
 
 lemma cobases_eq_image_compl_bases (M : matroid E) : 
   M.cobases = compl '' M.bases := 
-by {convert (M.basis_antichain.img_compl.max_lower_set_of), simpa [lattice_matroid.cobases]}
+by {convert (M.basis_antichain.img_compl.max_lower_set_of), simpa [supermatroid.cobases]}
 
 lemma coindep_iff (M : matroid E) : 
    M.coindep X ↔ ∃ B, (M.basis B ∧ X ⊆ Bᶜ) := iff.rfl 
