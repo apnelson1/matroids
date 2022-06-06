@@ -4,10 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: Peter Nelson.
 -/
 import tactic 
-import .prop_lemmas
+import order.minimal
 import .lattice_intervals'
 import order.lattice_intervals
 import .weak_compl
+import order.upper_lower
 
 /-!
 # supermatroids 

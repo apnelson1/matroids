@@ -4,7 +4,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: Peter Nelson.
 -/
 import tactic 
-import .prop_lemmas
+import order.antichain 
+import order.minimal 
+import order.upper_lower
+--import .prop_lemmas
 import .lattice_intervals'
 import order.lattice_intervals
 
@@ -246,7 +249,7 @@ hb.indep_of_le (sdiff_le)
 
 lemma cobases_eq_image_compl_bases (M : supermatroid α) : 
   M.cobases = compl '' M.bases := 
-by {convert (M.basis_antichain.img_compl.max_lower_set_of), simpa [cobases]}
+by {convert (M.basis_antichain.image_compl.max_lower_set_of), simpa [cobases]}
 
 lemma coindep_iff (M : supermatroid α) : 
    M.coindep x ↔ ∃ b, (M.basis b ∧ x ≤ bᶜ) := iff.rfl 
@@ -256,7 +259,7 @@ lemma coindep.exists_disj_basis (hi : M.coindep i): ∃ b, M.basis b ∧ disjoin
 
 lemma cobasis_iff_compl_basis (M : supermatroid α) :
   M.cobasis b ↔ M.basis bᶜ :=
-by {rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_compl_bases ,mem_compl_image']}
+by {rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_compl_bases ,mem_compl_image]}
 
 lemma bot_coindep (M : supermatroid α) : M.coindep ⊥ := 
 M.coindep_iff.mpr (exists.elim (M.exists_basis) (λ b hb, ⟨b, hb, bot_le⟩))
@@ -362,7 +365,7 @@ lemma dual_basis_iff (M : supermatroid α) (b : α) : M.dual.basis b ↔ M.cobas
 lemma dual_bases_eq (M : supermatroid α) : M.dual.bases = M.cobases := rfl 
 
 @[simp] lemma dual_dual (M : supermatroid α) : M.dual.dual = M := 
-bases_inj (by simp only [dual_bases_eq, cobases_eq_image_compl_bases, compl_compl_image'])
+bases_inj (by simp only [dual_bases_eq, cobases_eq_image_compl_bases, compl_compl_image])
 
 end dual 
 
