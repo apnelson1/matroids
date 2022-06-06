@@ -54,7 +54,7 @@ namespace supermatroid
 
 section basic 
 
-variables {α : Type u} [distrib_lattice α] [bounded_order α] {M : supermatroid α} 
+variables {α : Type u} [lattice α] [bounded_order α] {M : supermatroid α} 
   {i j b x y c d r : α}
 
 def indep (M : supermatroid α) : α → Prop := M.ind
@@ -221,8 +221,10 @@ end basic
 
 section dual 
 
-variables {α : Type u} [distrib_lattice α] [bounded_order α] [has_reverser α] 
+variables {α : Type u} [lattice α] [bounded_order α] [has_precompl α] 
   {M : supermatroid α} {i j b x y c d r : α}
+
+open has_precompl
 
 def coindep (M : supermatroid α) : α → Prop := 
   λ i, ∃ (b : α), (M.basis b ∧ i ≤ bᵒ)
@@ -237,11 +239,11 @@ def cobasis (M : supermatroid α) : α → Prop := M.cobases
 
 @[simp] lemma mem_cobases_iff : b ∈ M.cobases ↔ M.cobasis b := iff.rfl 
 
-lemma cobases_eq_image_dual_iso_bases (M : supermatroid α) : 
-  M.cobases = has_reverser.opp '' M.bases := 
+lemma cobases_eq_image_pcompl_bases (M : supermatroid α) : 
+  M.cobases = pcompl '' M.bases := 
 --by {convert (M.basis_antichain.img_compl.max_lower_set_of), simpa [cobases]}
 begin
-  convert (has_reverser.image_antichain M.basis_antichain).max_lower_set_of, 
+  convert (image_antichain M.basis_antichain).max_lower_set_of, 
   simp only [cobases, coind, coindep, mem_image, exists_prop, exists_exists_and_eq_and],
   refl, 
 end 
@@ -249,12 +251,12 @@ end
 lemma coindep_iff (M : supermatroid α) : 
    M.coindep x ↔ ∃ b, (M.basis b ∧ x ≤ bᵒ) := iff.rfl 
 
--- lemma coindep.exists_le_opp_basis (hi : M.coindep i): ∃ b, M.basis b ∧ disjoint i b := 
+-- lemma coindep.exists_le_pcompl_basis (hi : M.coindep i): ∃ b, M.basis b ∧ disjoint i b := 
 --   exists.elim hi (λ b hb, ⟨b, hb.1, disjoint_iff_le_compl_right.mpr hb.2⟩)
 
-lemma cobasis_iff_opp_basis (M : supermatroid α) :
+lemma cobasis_iff_pcompl_basis (M : supermatroid α) :
   M.cobasis b ↔ M.basis bᵒ  :=
-by rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_dual_iso_bases ,has_reverser.mem_image]
+by rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_pcompl_bases, mem_image_pcompl]
 
 lemma bot_coindep (M : supermatroid α) : M.coindep ⊥ := 
 M.coindep_iff.mpr (exists.elim (M.exists_basis) (λ b hb, ⟨b, hb, bot_le⟩))
@@ -271,86 +273,87 @@ lemma coind_augment (M : supermatroid α) :
   augmentable M.coind := 
 begin
   rintros i ⟨b, hb_b, hib⟩ j hic_nb hjc_b, 
-  rw [←cobases, mem_cobases_iff, cobasis_iff_opp_basis] at hic_nb hjc_b,  
+  rw [←cobases, mem_cobases_iff, cobasis_iff_pcompl_basis] at hic_nb hjc_b,  
    
   obtain ⟨b'',hb''_b,hjb'',hb''ji⟩ := (hjc_b.indep.inf_left_indep iᵒ).extend_to_sup_basis hb_b, 
   
   have hb''_lt_io : b'' < iᵒ, from 
   lt_of_le_of_ne 
-    ((hb''ji.trans (sup_le_sup_left (has_reverser.le_opp_comm.mp hib) _)).trans (by simp))
+    ((hb''ji.trans (sup_le_sup_left (le_pcompl_comm.mp hib) _)).trans (by simp))
     ( λ he, hic_nb ⟨(hic_nb (he.subst hb''_b)).elim, 
       λ a ha hia, by {subst he, exact hb''_b.eq_of_le_indep hia ha}⟩),
      
-  refine ⟨b''ᵒ , ⟨has_reverser.lt_opp_comm.mp hb''_lt_io, _⟩,⟨b'',hb''_b, rfl.le⟩⟩,
-  rwa [has_reverser.opp_le_comm, has_reverser.opp_sup], 
+  refine ⟨b''ᵒ , ⟨lt_pcompl_comm.mp hb''_lt_io, _⟩,⟨b'',hb''_b, rfl.le⟩⟩,
+  rwa [pcompl_le_comm, pcompl_sup], 
 end 
 
 lemma coind_extension (M : supermatroid α) : 
   extensible M.coindep := 
 begin
-  rintros i₁ ⟨b,hb_b, hi₁b⟩ x hi₁x,  
-  obtain ⟨i,hi⟩ := M.exists_basis_of xᵒ, 
-  obtain ⟨b', ⟨hb'b, hib', hb'i⟩⟩ := hi.indep.extend_to_sup_basis hb_b,   
+  sorry, 
+  -- rintros i₁ ⟨b,hb_b, hi₁b⟩ x hi₁x,  
+  -- obtain ⟨i,hi⟩ := M.exists_basis_of xᵒ, 
+  -- obtain ⟨b', ⟨hb'b, hib', hb'i⟩⟩ := hi.indep.extend_to_sup_basis hb_b,   
   
-  have hii₁ := has_reverser.le_opp_comm.mp (hi₁x.trans (has_reverser.le_opp_comm.mp hi.le)), 
+  -- have hii₁ := le_pcompl_comm.mp (hi₁x.trans (le_pcompl_comm.mp hi.le)), 
 
-  refine ⟨x ⊓ b'ᵒ, 
-    ⟨mem_Icc.mp ⟨le_inf hi₁x _, inf_le_left⟩, M.coindep_iff.mpr ⟨b', hb'b, inf_le_right⟩⟩, _⟩, 
-  {rw has_reverser.le_opp_comm at hi₁b ⊢, exact hb'i.trans (sup_le hii₁ hi₁b)},
+  -- refine ⟨x ⊓ (b'ᵒ ⊔ xᵒ),⟨⟨_,inf_le_left⟩,M.coindep_iff.mpr _⟩,_⟩,  
+  --   --⟨mem_Icc.mp ⟨le_inf hi₁x _, inf_le_left⟩, M.coindep_iff.mpr ⟨b', hb'b, inf_le_right⟩⟩, _⟩, 
+  -- --{rw le_pcompl_comm at hi₁b ⊢, exact hb'i.trans (sup_le hii₁ hi₁b)},
   
-  rintros y ⟨hy_int,(hy_i : M.coindep y)⟩ hxy, 
-  obtain ⟨b'',⟨hb''b, hYb''⟩⟩ := hy_i,
-  obtain ⟨hi₁y, hyx⟩ := mem_Icc.mp hy_int, 
-  suffices h2yb : y ≤ b'ᵒ, 
-    from le_antisymm hxy (le_inf hyx h2yb),
+  -- rintros y ⟨hy_int,(hy_i : M.coindep y)⟩ hxy, 
+  -- obtain ⟨b'',⟨hb''b, hYb''⟩⟩ := hy_i,
+  -- obtain ⟨hi₁y, hyx⟩ := mem_Icc.mp hy_int, 
+  -- suffices h2yb : y ≤ b'ᵒ, 
+  --   from le_antisymm hxy (le_inf hyx h2yb),
   
-  have hb''x : b'' ⊓ x ≤ b' ⊓ x, 
-  begin
-    refine le_inf_iff.mpr ⟨_,inf_le_right⟩, 
-    rw has_reverser.le_opp_comm at hYb'',
-    have hxy' := hxy, 
-    rw [←has_reverser.opp_opp x, ←has_reverser.opp_sup, has_reverser.opp_le_comm] at hxy,  
-    suffices h : xᵒ ⊓ x ≤ b', 
-      from (inf_le_inf_right x (hYb''.trans hxy)).trans (by simpa [inf_sup_right]), 
-    have := (has_reverser.opp_le hyx).trans,
-    have := (has_reverser.le_opp_comm.mp hii₁), 
+  -- have hb''x : b'' ⊓ x ≤ b' ⊓ x, 
+  -- begin
+  --   refine le_inf_iff.mpr ⟨_,inf_le_right⟩, 
+  --   rw le_pcompl_comm at hYb'',
+  --   have hxy' := hxy, 
+  --   rw [←pcompl_pcompl x, ←pcompl_sup, pcompl_le_comm] at hxy,  
+  --   suffices h : xᵒ ⊓ x ≤ b', 
+  --     from (inf_le_inf_right x (hYb''.trans hxy)).trans (by simpa [inf_sup_right]), 
+  --   have := (pcompl_le hyx).trans,
+  --   have := (le_pcompl_comm.mp hii₁), 
     
-    refine (inf_le_inf (has_reverser.opp_le hi₁x) (has_reverser.le_opp_comm.mp hi.le)).trans _, 
-    rw  [←has_reverser.opp_sup, has_reverser.opp_le_comm], 
-    sorry,sorry,
-    --rw [←sup_inf_sdiff x b', sdiff_eq, inf_sup_left, sup_le_iff, ←inf_assoc],
-    -- refine ⟨inf_le_right, 
-    -- (inf_le_inf_left b'' (hxy.trans (disjoint_iff_le_compl_right.mp hYb''))).trans _⟩, 
-    -- rw [inf_compl_eq_bot], 
-    -- exact bot_le, 
-  end, 
+  --   refine (inf_le_inf (pcompl_le hi₁x) (le_pcompl_comm.mp hi.le)).trans _, 
+  --   rw  [←pcompl_sup, pcompl_le_comm], 
+  --   sorry,sorry,
+  --   --rw [←sup_inf_sdiff x b', sdiff_eq, inf_sup_left, sup_le_iff, ←inf_assoc],
+  --   -- refine ⟨inf_le_right, 
+  --   -- (inf_le_inf_left b'' (hxy.trans (disjoint_iff_le_compl_right.mp hYb''))).trans _⟩, 
+  --   -- rw [inf_compl_eq_bot], 
+  --   -- exact bot_le, 
+  -- end, 
 
-  have hi'b : ((b'' ⊓ x) ⊔ (b' ⊓ xᵒ)) ≤ b' := 
-    sup_le (hb''x.trans (inf_le_left)) inf_le_left,  
+  -- have hi'b : ((b'' ⊓ x) ⊔ (b' ⊓ xᵒ)) ≤ b' := 
+  --   sup_le (hb''x.trans (inf_le_left)) inf_le_left,  
 
-  by_cases h1i' : ((b'' ⊓ x) ⊔ (b' ⊓ xᵒ)) = b', 
-  { rw [←h1i'],  
-    exact ⟨disjoint.inf_right _ hYb'', 
-      disjoint.mono_left hyx (disjoint.mono_right inf_le_right disjoint_compl_right)⟩},
+  -- by_cases h1i' : ((b'' ⊓ x) ⊔ (b' ⊓ xᵒ)) = b', 
+  -- { rw [←h1i'],  
+  --   exact ⟨disjoint.inf_right _ hYb'', 
+  --     disjoint.mono_left hyx (disjoint.mono_right inf_le_right disjoint_compl_right)⟩},
   
-  obtain ⟨i'',⟨hi'i'', hi''b'', hi''i⟩⟩ :=  (hb'b.indep_of_le hi'b).augment
-    (hb'b.not_basis_of_lt (lt_of_le_of_ne hi'b h1i')) hb''b ,
+  -- obtain ⟨i'',⟨hi'i'', hi''b'', hi''i⟩⟩ :=  (hb'b.indep_of_le hi'b).augment
+  --   (hb'b.not_basis_of_lt (lt_of_le_of_ne hi'b h1i')) hb''b ,
     
-  have hii' : i ≤ (b'' ⊓ x ⊔ b' ⊓ xᶜ) ⊓ xᶜ := 
-    le_inf (le_sup_of_le_right (le_inf hib' hi.le)) hi.le, 
+  -- have hii' : i ≤ (b'' ⊓ x ⊔ b' ⊓ xᶜ) ⊓ xᶜ := 
+  --   le_inf (le_sup_of_le_right (le_inf hib' hi.le)) hi.le, 
 
-  have hi'i'' : (b'' ⊓ x ⊔ b' ⊓ xᶜ) ⊓ xᶜ < i'' ⊓ xᶜ := 
-  begin 
-    simp only [inf_sup_right, inf_assoc, inf_compl_eq_bot, inf_bot_eq, inf_idem, bot_sup_eq], 
-    refine lt_of_le_of_ne (le_trans (by simp) (inf_le_inf_right xᶜ hi'i''.le)) (λ h_eq, _), 
-    rw [←sup_inf_sdiff i'' x, sdiff_eq, ←h_eq] at hi'i'', 
-    rw [sup_right_comm, ←@sup_comm _ _ b'', sup_inf_self] at hi''b'',
-    have h_last := lt_of_lt_of_le hi'i'' (sup_le_sup_right (inf_le_inf_right x hi''b'') _), 
-    simp [inf_sup_right, inf_assoc] at h_last, assumption
-  end,
+  -- have hi'i'' : (b'' ⊓ x ⊔ b' ⊓ xᶜ) ⊓ xᶜ < i'' ⊓ xᶜ := 
+  -- begin 
+  --   simp only [inf_sup_right, inf_assoc, inf_compl_eq_bot, inf_bot_eq, inf_idem, bot_sup_eq], 
+  --   refine lt_of_le_of_ne (le_trans (by simp) (inf_le_inf_right xᶜ hi'i''.le)) (λ h_eq, _), 
+  --   rw [←sup_inf_sdiff i'' x, sdiff_eq, ←h_eq] at hi'i'', 
+  --   rw [sup_right_comm, ←@sup_comm _ _ b'', sup_inf_self] at hi''b'',
+  --   have h_last := lt_of_lt_of_le hi'i'' (sup_le_sup_right (inf_le_inf_right x hi''b'') _), 
+  --   simp [inf_sup_right, inf_assoc] at h_last, assumption
+  -- end,
   
-  have hi'i'' := lt_of_le_of_lt hii' hi'i'', 
-  exact (hi'i''.ne (hi.2 (⟨inf_le_right, hi''i.indep_of_le (inf_le_left) ⟩) hi'i''.le)).elim, 
+  -- have hi'i'' := lt_of_le_of_lt hii' hi'i'', 
+  -- exact (hi'i''.ne (hi.2 (⟨inf_le_right, hi''i.indep_of_le (inf_le_left) ⟩) hi'i''.le)).elim, 
 end 
 
 def dual (M : supermatroid α) : supermatroid α := 
@@ -369,9 +372,8 @@ lemma dual_basis_iff (M : supermatroid α) (b : α) : M.dual.basis b ↔ M.cobas
 lemma dual_bases_eq (M : supermatroid α) : M.dual.bases = M.cobases := rfl 
 
 @[simp] lemma dual_dual (M : supermatroid α) : M.dual.dual = M := 
-bases_inj (by simp only [dual_bases_eq, cobases_eq_image_compl_bases, compl_compl_image'])
- 
- 
+bases_inj (by simp only [dual_bases_eq, cobases_eq_image_pcompl_bases, pcompl_pcompl_image])
+
 
 end dual 
 
