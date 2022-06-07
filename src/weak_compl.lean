@@ -41,6 +41,8 @@ by {rw image_pcompl_eq_preimage_pcompl, apply compl'.to_equiv.preimage_image _}
 
 lemma mem_image_pcompl {x : α} {s : set α} : x ∈ pcompl '' s ↔ xᵒ ∈ s := by {rw image_pcompl_eq_preimage_pcompl, refl}
 
+lemma mem_image_pcompl' {x : α} {P : α → Prop} : (pcompl '' P) x ↔ P xᵒ := mem_image_pcompl 
+
 lemma image_antichain (hs : is_antichain (≤) s) : is_antichain (≤) (pcompl '' s) :=
 begin
   rintros _ ⟨a,has, rfl⟩ _ ⟨b,hbs,rfl⟩ hab hle, 
