@@ -459,57 +459,57 @@ end
 --   -- exact (hi'i''.ne (hi.2 (⟨inf_le_right, hi''i.indep_of_le (inf_le_left) ⟩) hi'i''.le)).elim, 
 -- end 
 
-def dual (M : supermatroid α) : supermatroid α := 
-{ ind := M.coind,
-  ind_nonempty := M.coindep_nonempty,
-  ind_lower_set := M.coindep_lower_set,
-  ind_augment := M.coind_augment,
-  ind_extension := M.coind_extension }
+-- def dual (M : supermatroid α) : supermatroid α := 
+-- { ind := M.coind,
+--   ind_nonempty := M.coindep_nonempty,
+--   ind_lower_set := M.coindep_lower_set,
+--   ind_augment := M.coind_augment,
+--   ind_extension := M.coind_extension }
 
-lemma dual_ind_eq (M : supermatroid α)  : M.dual.ind = M.coind := rfl 
+-- lemma dual_ind_eq (M : supermatroid α)  : M.dual.ind = M.coind := rfl 
 
-lemma dual_indep_iff (M : supermatroid α) (i : α): M.dual.indep i ↔ M.coindep i := iff.rfl 
+-- lemma dual_indep_iff (M : supermatroid α) (i : α): M.dual.indep i ↔ M.coindep i := iff.rfl 
 
-lemma dual_basis_iff (M : supermatroid α) (b : α) : M.dual.basis b ↔ M.cobasis b := iff.rfl 
+-- lemma dual_basis_iff (M : supermatroid α) (b : α) : M.dual.basis b ↔ M.cobasis b := iff.rfl 
 
-lemma dual_bases_eq (M : supermatroid α) : M.dual.bases = M.cobases := rfl 
+-- lemma dual_bases_eq (M : supermatroid α) : M.dual.bases = M.cobases := rfl 
 
-@[simp] lemma dual_dual (M : supermatroid α) : M.dual.dual = M := 
-bases_inj (by simp only [dual_bases_eq, cobases_eq_image_pcompl_bases, pcompl_pcompl_image])
+-- @[simp] lemma dual_dual (M : supermatroid α) : M.dual.dual = M := 
+-- bases_inj (by simp only [dual_bases_eq, cobases_eq_image_pcompl_bases, pcompl_pcompl_image])
 
 
 end dual 
 
 
-section iso 
+-- section iso 
 
-variables {α : Type u} {β : Type v} [semilattice_sup α] [semilattice_sup β] {M : supermatroid α} 
-  {N : supermatroid β}
+-- variables {α : Type u} {β : Type v} [semilattice_sup α] [semilattice_sup β] {M : supermatroid α} 
+--   {N : supermatroid β}
 
-structure supermatroid_iso (M : supermatroid α) (M' : supermatroid β) : Type (max u v) :=
-(to_equiv  : α ≃o β)
-(on_ind : ∀ a, M.ind a ↔ M'.ind (to_equiv a) )
+-- structure supermatroid_iso (M : supermatroid α) (M' : supermatroid β) : Type (max u v) :=
+-- (to_equiv  : α ≃o β)
+-- (on_ind : ∀ a, M.ind a ↔ M'.ind (to_equiv a) )
 
-infix `≃l` :25 := supermatroid_iso 
-
-
-
-
-end iso 
-
-section minor
+-- infix `≃l` :25 := supermatroid_iso 
 
 
 
-variables {α : Type u} [distrib_lattice α] [bounded_order α] {M : supermatroid α} {c d r : α}
 
---def contract {M : supermatroid α} (c : α) (hc : M.indep c) : sorry
+-- end iso 
 
-
-
--- #check supermatroid.circuit M
+-- section minor
 
 
-end minor 
+
+-- variables {α : Type u} [distrib_lattice α] [bounded_order α] {M : supermatroid α} {c d r : α}
+
+-- --def contract {M : supermatroid α} (c : α) (hc : M.indep c) : sorry
+
+
+
+-- -- #check supermatroid.circuit M
+
+
+-- end minor 
 
 end supermatroid 
