@@ -3,8 +3,7 @@ Copyright (c) 2022 Peter Nelson. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: Peter Nelson.
 -/
-import .supermatroid 
-import .prop_lemmas
+import .supermatroid.dual  
 
 /-!
 # Matroids 
@@ -48,22 +47,10 @@ variables {M : matroid E} {I J B X Y C : set E}
 section basic 
 
 def indep (M : matroid E) : (set E → Prop) := M.indep  
-def indep_sets (M : matroid E) : set (set E) := M.indep 
 def basis (M : matroid E) : (set E → Prop) := M.basis 
-def bases (M : matroid E) : (set (set E)) := M.basis 
 def coindep (M : matroid E) : (set E → Prop) := M.coindep
-def coindep_sets (M : matroid E) : (set (set E)) := M.coindep
 def spanning (M : matroid E) : (set E → Prop) := M.spanning
 def circuit (M : matroid E) : (set E → Prop) := M.circuit 
-def circuits (M : matroid E) : (set (set E)) := M.circuit
-
-@[simp] lemma mem_indep_sets_iff : I ∈ M.ind ↔ M.indep I := iff.rfl 
-
-@[simp] lemma mem_coindep_sets_iff : I ∈ M.coind ↔ M.coindep I := iff.rfl 
-
-@[simp] lemma mem_bases_iff : B ∈ M.bases ↔ M.basis B := iff.rfl 
-
-@[simp] lemma mem_cobases_iff : B ∈ M.cobases ↔ M.cobasis B := iff.rfl 
 
 lemma empty_indep (M : matroid E): M.indep ∅ := M.bot_indep 
 
@@ -78,7 +65,7 @@ lemma indep.diff_indep (hI : M.indep I) (X : set E) : M.indep (I \ X) := hI.inte
 lemma dep.dep_of_supset (hX : M.dep X) (hXY : X ⊆ Y) : M.dep Y := hX.dep_of_lt hXY 
 
 lemma indep.extension (hI : M.indep I) (hIX : I ⊆ X) : ∃ J, I ⊆ J ∧ M.basis_of J X := 
-hI.extension hIX 
+hI.le_basis_of hIX 
 
 lemma indep.augment (hI : M.indep I) (hI_nb : ¬M.basis I) (hJ : M.basis J) : 
   ∃ I', I ⊂ I' ∧ I' ⊆ I ∪ J ∧ M.indep I' := 
@@ -147,27 +134,33 @@ lemma basis_of.basis (hB : M.basis_of B X) (hX : M.spanning X) : M.basis B := hB
 
 lemma indep.extend_to_union_basis {I B : set E} (hI: M.indep I) (hB : M.basis B) : 
    ∃ B', M.basis B' ∧ I ⊆ B' ∧ B' ⊆ I ∪ B :=
-hI.extend_to_sup_basis hB 
+hI.le_basis_sup hB 
 
 lemma exists_basis (M : matroid E): ∃ B, M.basis B := M.exists_basis
 
 lemma univ_spanning (M : matroid E) : M.spanning univ := M.top_spanning 
 
-lemma indep.extends_to_basis (hI : M.indep I) : ∃ B, I ⊆ B ∧ M.basis B := hI.extends_to_basis
+lemma indep.extends_to_basis (hI : M.indep I) : ∃ B, I ⊆ B ∧ M.basis B := hI.le_basis 
 
-lemma indep_iff_subset_basis : M.indep I ↔ ∃ B, I ⊆ B ∧ M.basis B := 
+lemma indep_iff_subset_basis {I : set E}: M.indep I ↔ ∃ B, I ⊆ B ∧ M.basis B := 
 supermatroid.indep_iff_le_basis
 
-lemma bases_inj {M₁ M₂ : matroid E} (hB : M₁.bases = M₂.bases)  : M₁ = M₂ := 
-  by {ext, simp_rw [mem_indep_sets_iff, indep_iff_subset_basis, ←mem_bases_iff, hB]}
+-- rewriting using the above lemma doesn't work here, for some reason. 
+lemma bases_inj {M₁ M₂ : matroid E} (hB : M₁.basis = M₂.basis) : M₁ = M₂ := 
+begin
+  ext I, refine ⟨λ h, _, λ h, _⟩,  
+  all_goals {
+    apply indep_iff_subset_basis.mpr, obtain ⟨B,hB₁,hB₂⟩ := indep_iff_subset_basis.mp h, 
+    refine ⟨B, hB₁, by {try {rwa hB}, try {rwa ←hB},}⟩},
+end 
 
 end basic 
 
 section dual 
 
 lemma cobases_eq_image_compl_bases (M : matroid E) : 
-  M.cobases = compl '' M.bases := 
-by {convert (M.basis_antichain.image_compl.max_lower_set_of), simpa [supermatroid.cobases]}
+  M.cobasis = compl '' M.basis := 
+by {convert (M.basis_antichain.image_compl.max_lower_set_of), simpa [supermatroid.cobasis]}
 
 lemma coindep_iff (M : matroid E) : 
    M.coindep X ↔ ∃ B, (M.basis B ∧ X ⊆ Bᶜ) := iff.rfl 
@@ -175,9 +168,8 @@ lemma coindep_iff (M : matroid E) :
 lemma coindep.exists_disj_basis (hI : M.coindep I): ∃ B, M.basis B ∧ disjoint I B := 
   exists.elim hI (λ B hB, ⟨B, hB.1, disjoint_iff_subset_compl_right.mpr hB.2⟩)
 
-lemma cobasis_iff_compl_basis (M : matroid E) :
-  M.cobasis B ↔ M.basis Bᶜ :=
-by rw [←mem_bases_iff, ←mem_cobases_iff, cobases_eq_image_compl_bases, mem_compl_image]
+lemma cobasis_iff_compl_basis (M : matroid E) : M.cobasis B ↔ M.basis Bᶜ :=
+M.cobasis_iff_pcompl_basis
 
 lemma empty_coindep (M : matroid E) : M.coindep ∅ := 
 M.coindep_iff.mpr (exists.elim (M.exists_basis) (λ B hB, ⟨B, hB, Bᶜ.empty_subset⟩))
@@ -186,17 +178,6 @@ lemma coindep.subset (hJ : M.coindep J) (hIJ : I ⊆ J) : M.coindep I :=
 M.coindep_iff.mpr (exists.elim (M.coindep_iff.mp hJ) (λ B hB', ⟨B, hB'.1, hIJ.trans hB'.2⟩))
 
 def dual (M : matroid E) : matroid E := M.dual 
-
-lemma dual_indep_sets_eq (M : matroid E)  : M.dual.ind = M.coind := rfl 
-
-lemma dual_indep_iff (M : matroid E) (I : set E): M.dual.indep I ↔ M.coindep I := iff.rfl 
-
-lemma dual_basis_iff (M : matroid E) (B : set E) : M.dual.basis B ↔ M.cobasis B := iff.rfl 
-
-lemma dual_bases_eq (M : matroid E) : M.dual.bases = M.cobases := rfl 
-
-@[simp] lemma dual_dual (M : matroid E) : M.dual.dual = M := 
-bases_inj (by simp only [dual_bases_eq, cobases_eq_image_compl_bases, compl_compl_image])
 
 end dual 
 
