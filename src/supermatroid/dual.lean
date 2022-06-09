@@ -99,9 +99,9 @@ begin
   rw ←le_pcompl_comm at hi₁b, rw ←pcompl_le_iff at hi₁x,
   refine ⟨x ⊓ b₁ᵒ,
     ⟨⟨le_inf (pcompl_le_iff.mp hi₁x) (le_pcompl_comm.mp (hb₁x'.trans (sup_le hi₁x hi₁b))),
-      inf_le_left⟩,
-    M.coindep_iff.mpr ⟨b₁,hb₁,inf_le_right⟩⟩, λ a ha hxa, le_antisymm hxa (le_inf ha.1.2 _)⟩, 
-  
+      inf_le_left⟩, M.coindep_iff.mpr ⟨b₁,hb₁,inf_le_right⟩⟩, 
+    λ a ha hxa, le_antisymm hxa (le_inf ha.1.2 _)⟩, 
+
   obtain ⟨⟨hi₁a, hax⟩, ⟨b₂,⟨hb₂,hab₂⟩⟩⟩ := ha, 
 
   rw le_pcompl_comm at ⊢ hab₂, 
