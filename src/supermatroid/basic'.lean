@@ -29,22 +29,33 @@ TODO : rank, circuits, theory for finite supermatroids, etc etc. -/
 
 universes u v
  
--- the infinite axioms
-def supermatroid.maximizable {α : Type u} [preorder α] (s : set α) : Prop := 
-  ∀ (a ∈ s) b, a ≤ b → (maximals (≤) ((set.Icc a b) ∩ s)).nonempty
+-- -- the infinite axioms
+-- def supermatroid.maximizable {α : Type u} [preorder α] (s : set α) : Prop := 
+--   ∀ (a ∈ s) b, a ≤ b → (maximals (≤) ((set.Icc a b) ∩ s)).nonempty
 
--- augmentation axiom 
-def supermatroid.augmentable {α : Type u} [semilattice_sup α] (s : set α) : Prop := 
-  ∀ (a ∈ s) b, (a ∉ maximals (≤) s) → (b ∈ maximals (≤) s) → ((set.Ioc a (a ⊔ b)) ∩ s).nonempty 
+-- -- augmentation axiom 
+-- def supermatroid.augmentable {α : Type u} [semilattice_sup α] (s : set α) : Prop := 
+--   ∀ (a ∈ s) b, (a ∉ maximals (≤) s) → (b ∈ maximals (≤) s) → ((set.Ioc a (a ⊔ b)) ∩ s).nonempty 
+
+def supermatroid.satisfies_middle_axiom {α : Type u} [preorder α] (s : set α) : Prop := 
+  ∀ x x' (b ∈ s) (b' ∈ s), x ≤ x' → x ≤ b → b' ≤ x' → ∃ b₀ ∈ s, x ≤ b₀ ∧ b₀ ≤ x'
+
+def supermatroid.max_inf {α : Type u} [lattice α] (s : set α) : Prop := 
+  ∀ x (b ∈ s), ∃ b' ∈ s, b ⊓ x ≤ b' ⊓ x ∧ ∀ (b'' ∈ s), b' ⊓ x ≤ b'' ⊓ x → b' ⊓ x = b'' ⊓ x
+
+def supermatroid.max_sup {α : Type u} [lattice α] (s : set α) : Prop := 
+  ∀ x (b ∈ s), ∃ b' ∈ s, b ⊔ x ≤ b' ⊔ x ∧ ∀ (b'' ∈ s), b' ⊔ x ≤ b'' ⊔ x → b' ⊔ x = b'' ⊔ x
 
 open set 
 
-@[ext] structure supermatroid (α : Type u) [semilattice_sup α] := 
-(indep         : α → Prop)
-(ind_nonempty  : ∃ x, indep x ) 
-(ind_lower_set : is_lower_set indep)
-(ind_augment   : supermatroid.augmentable indep)
-(ind_maximize  : supermatroid.maximizable indep)
+-- 'self-dual' set of basis axioms 
+@[ext] structure supermatroid (α : Type u) [lattice α] := 
+(basis           : α → Prop)
+(basis_nonempty  : ∃ b, basis b) 
+(basis_antichain : is_antichain (≤) basis)
+(basis_middle    : supermatroid.satisfies_middle_axiom basis)
+(basis_max_inf   : supermatroid.max_inf basis)
+(basis_max_sup   : supermatroid.max_sup basis)
 
 namespace supermatroid 
 
@@ -53,19 +64,19 @@ section basic
 variables {α : Type u} [lattice α] [bounded_order α] {M : supermatroid α} 
   {i j b x y c d r : α}
 
-def dep (M : supermatroid α) := λ x,¬ M.indep x 
+def indep (M : supermatroid α) (x : α) := ∃ b, M.basis b ∧ x ≤ b 
 
-def basis (M : supermatroid α) : α → Prop := maximals (≤) M.indep
+def dep (M : supermatroid α) (x : α) := ¬ M.indep x 
 
-def basis_of (M : supermatroid α) : α → α → Prop := 
-  λ b x, b ∈ maximals (≤) (λ Z, Z ≤ x ∧ M.indep Z)
+def basis_of (M : supermatroid α) (i x : α) :=
+  M.indep i ∧ i ≤ x ∧ ∀ j, M.indep j → j ≤ x → i ≤ j → i = j 
 
 def circuit (M : supermatroid α) : α → Prop := minimals (≤) M.indepᶜ 
 
 def spanning (M : supermatroid α) (x : α) :=  ∃ b, b ≤ x ∧ M.basis b
 
-lemma indep.indep_of_le (hi : M.indep i) (hJi : j ≤ i) : M.indep j := 
-M.ind_lower_set hJi hi
+lemma indep.indep_of_le (hi : M.indep i) (hji : j ≤ i) : M.indep j := 
+exists.elim hi (λ b hb, ⟨b, ⟨hb.1, hji.trans hb.2⟩⟩)
 
 lemma indep.inf_left_indep (hi : M.indep i) (x : α) : M.indep (x ⊓ i) := 
 hi.indep_of_le inf_le_right
@@ -74,7 +85,7 @@ lemma indep.inf_right_indep (hi : M.indep i) (x : α) : M.indep (i ⊓ x) :=
 hi.indep_of_le inf_le_left
 
 lemma bot_indep (M : supermatroid α): M.indep ⊥ := 
-exists.elim M.ind_nonempty (λ a (ha : M.indep a), ha.indep_of_le bot_le)
+exists.elim M.basis_nonempty (λ b h, ⟨b, h, bot_le⟩)
 
 lemma indep.not_dep (hi : M.indep i) : ¬ M.dep i := 
   not_not_mem.mpr hi 
@@ -94,27 +105,17 @@ lemma not_indep_iff_dep : ¬ M.indep i ↔ M.dep i :=
 lemma dep.dep_of_lt (hx : M.dep x) (hxy : x ≤ y) : M.dep y := 
 not_indep_iff_dep.mp (λ h, (hx.not_indep (h.indep_of_le hxy)).elim)
 
-lemma indep.basis_of (hi : M.indep i) (hix : i ≤ x) (h : ∀ j, M.indep j → i ≤ j → j ≤ x → i = j) : 
+lemma indep.basis_of (hi : M.indep i) (hix : i ≤ x) (h : ∀ j, M.indep j → j ≤ x → i ≤ j → i = j) : 
   M.basis_of i x :=
-⟨⟨hix,hi⟩, λ j h' h'', h j h'.2 h'' h'.1⟩ 
+⟨hi,  hix, h⟩
 
-lemma indep.basis (hi : M.indep i) (hmax : ∀ j, M.indep j → i ≤ j → i = j) : M.basis i := 
-⟨hi, λ j, hmax j⟩
+lemma basis.indep (h : M.basis b) : M.indep b := ⟨b, h, rfl.le⟩ 
 
-lemma indep.le_basis_of (hi : M.indep i) (hix : i ≤ x) :
-  ∃ j, i ≤ j ∧ M.basis_of j x := 
-begin
-  obtain ⟨j,⟨hj,(hj_ind : M.indep j)⟩,hj_max⟩ := M.ind_maximize i hi x hix, 
-  rw mem_Icc at hj, 
-  refine ⟨j, hj.1, hj_ind.basis_of hj.2 (λ j' hj' hjj' hj'x, hj_max ⟨mem_Icc.mpr _,hj'⟩  hjj')⟩, 
-  exact ⟨hj.1.trans hjj', hj'x⟩, 
-end 
+lemma basis_of.indep (h : M.basis_of b x) : M.indep b := h.1
 
-lemma basis.indep (h : M.basis b) : M.indep b := h.1 
+lemma basis_of.le (h : M.basis_of b x) : b ≤ x := h.2.1
 
-lemma basis_of.indep (h : M.basis_of b x) : M.indep b := h.1.2 
-
-lemma basis_of.le (h : M.basis_of b x) : b ≤ x := h.1.1 
+lemma basis.indep_of_le (hb : M.basis b) (hi : i ≤ b) : M.indep i := ⟨b,hb,hi⟩ 
 
 lemma basis.inf_left_indep (hb : M.basis b) (x : α) : M.indep (x ⊓ b) := 
 hb.indep.indep_of_le inf_le_right
@@ -122,7 +123,12 @@ hb.indep.indep_of_le inf_le_right
 lemma basis.inf_right_indep (hb : M.basis b) (x : α) : M.indep (b ⊓ x) := 
 hb.indep.indep_of_le inf_le_left
 
-lemma basis.eq_of_le_indep (h : M.basis b) (hbi : b ≤ i) (hi : M.indep i) : b = i := h.2 hi hbi
+lemma basis.eq_of_le_indep (h : M.basis b) (hbi : b ≤ i) (hi : M.indep i) : b = i := 
+begin
+  by_contradiction h_ne, 
+  obtain ⟨b',h₁,h₂⟩ := hi, 
+  exact M.basis_antichain h h₁ (λ hbb', h_ne (le_antisymm hbi (hbb'.symm ▸ h₂))) (hbi.trans h₂),
+end 
 
 lemma basis.not_indep_of_lt (hb : M.basis b) (hbx : b < x) : ¬ M.indep x := 
 λ hx,hbx.ne (hb.eq_of_le_indep hbx.le hx)
@@ -130,8 +136,12 @@ lemma basis.not_indep_of_lt (hb : M.basis b) (hbx : b < x) : ¬ M.indep x :=
 lemma basis.eq_of_basis_le (hb : M.basis b) (hx : M.basis x) (hxb : x ≤ b) : x = b :=
 hx.eq_of_le_indep hxb hb.indep 
 
-lemma basis_of.not_indep_of_lt (h : M.basis_of b x) (hby : b < y) (hYx : y ≤ x) : ¬ M.indep y := 
-λ hi, (hby.ne ((h.2 (⟨hYx,hi⟩ : y ≤ x ∧ M.indep y) hby.le))).elim 
+lemma basis_of.not_indep_of_lt (h : M.basis_of b x) (hby : b < y) (hyx : y ≤ x) : ¬ M.indep y := 
+begin
+  rintros ⟨b',hb',hyb'⟩, 
+  obtain ⟨i,hix,hi⟩ := h, 
+  exact hby.ne (hi y (hb'.indep_of_le hyb') hyx hby.le), 
+end 
 
 lemma basis_of.eq_of_le_indep (h : M.basis_of b x) (hby : b ≤ y) (hYx : y ≤ x) (hy : M.indep y): 
   b = y := 
@@ -141,19 +151,28 @@ lemma basis_of.indep_of_le (hb : M.basis_of b x) (hib : i ≤ b)  : M.indep i :=
 (hb.indep).indep_of_le hib 
 
 lemma basis.basis_of_top (hb : M.basis b) : M.basis_of b ⊤ := 
-hb.indep.basis_of le_top (λ j hj hbj _, (hb.eq_of_le_indep hbj hj)) 
+hb.indep.basis_of le_top (λ j hj hbj h, hb.eq_of_le_indep h hj) 
     
-lemma basis.indep_of_le (hb : M.basis b) (hib : i ≤ b) : M.indep i :=
-hb.basis_of_top.indep_of_le hib
-
 lemma basis.lt_not_basis (hb : M.basis b) (hbx : b < x) : ¬ M.basis x := 
 λ hx, (hb.not_indep_of_lt hbx hx.indep)
 
 lemma basis.not_basis_of_lt (hb : M.basis b) (hxb : x < b) : ¬ M.basis x := 
 λ h, (h.lt_not_basis hxb) hb 
 
-lemma basis_antichain (M : supermatroid α): is_antichain (≤) M.basis :=
-λ x hx y hy hxy h, hy.not_basis_of_lt (lt_of_le_of_ne h hxy) hx
+lemma indep.basis (hi : M.indep i) (hmax : ∀ j, M.indep j → i ≤ j → i = j) : M.basis i := 
+by {obtain ⟨b,hb, hbi⟩ := hi, have := (hmax b hb.indep hbi), rwa ← this at hb}
+
+lemma indep.le_basis_of (hi : M.indep i) (hix : i ≤ x) :
+  ∃ j, i ≤ j ∧ M.basis_of j x := 
+begin
+  obtain ⟨b,hb,hbi⟩ := hi, 
+  obtain ⟨b',⟨hb',hb'x,hb'_max⟩⟩ := M.basis_max_inf x _ hb, 
+  refine ⟨b' ⊓ x, (le_inf hbi hix).trans hb'x, hb'.inf_right_indep _,inf_le_right, _⟩, 
+  rintros j ⟨b'',hb'',hjb''⟩ hjx hb'j, 
+  refine hb'j.antisymm _, 
+  rw hb'_max b'' hb'' (le_inf (hb'j.trans hjb'') inf_le_right), 
+  exact le_inf hjb'' hjx,
+end 
 
 lemma circuit.not_indep (hc : M.circuit c) : ¬ M.indep c := hc.1 
 
@@ -202,8 +221,13 @@ lemma basis.exists_extension_from (hb : M.basis b) (x : α) :
 begin
   obtain ⟨i,hi⟩ := M.exists_basis_of x, 
   obtain ⟨b',⟨hb',bib',hb'i⟩⟩ := hi.indep.le_basis_sup hb,
-  refine ⟨b', hb'i.trans (sup_le_sup_right hi.le _) ,hb', (hb'.inf_right_indep _).basis_of
-    inf_le_right (λ j hj hj' hjx, hj'.antisymm (le_inf _ hjx))⟩, 
+
+  
+
+  refine ⟨b', hb'i.trans (sup_le_sup_right hi.le _) ,hb', 
+    (hb'.inf_right_indep _).basis_of inf_le_right _ ⟩, 
+  
+  
   rwa ←(hi.eq_of_le_indep ((le_inf bib' hi.le).trans hj') hjx hj), 
 end 
 
