@@ -221,14 +221,9 @@ lemma basis.exists_extension_from (hb : M.basis b) (x : α) :
 begin
   obtain ⟨i,hi⟩ := M.exists_basis_of x, 
   obtain ⟨b',⟨hb',bib',hb'i⟩⟩ := hi.indep.le_basis_sup hb,
-
-  
-
   refine ⟨b', hb'i.trans (sup_le_sup_right hi.le _) ,hb', 
-    (hb'.inf_right_indep _).basis_of inf_le_right _ ⟩, 
-  
-  
-  rwa ←(hi.eq_of_le_indep ((le_inf bib' hi.le).trans hj') hjx hj), 
+    (hb'.inf_right_indep _).basis_of inf_le_right (λ j hj hjx hb'j, hb'j.antisymm (le_inf _ hjx))⟩,
+  rwa ←hi.eq_of_le_indep (le_trans (le_inf bib' hi.le) hb'j) hjx hj,  
 end 
 
 lemma top_spanning (M : supermatroid α) : M.spanning ⊤ := 
