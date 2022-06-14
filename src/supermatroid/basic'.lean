@@ -12,15 +12,15 @@ import order.modular_lattice
 /-!
 # supermatroids 
 
-In this file we define a `supermatroid`, namely a nonempty `lower_set` in a `semilattice_sup`
-that satisfies certain augmentation axioms; its members are 'independent'. 
+In this file we define a `supermatroid`, namely a nonempty `antichain` in a `lattice`
+that satisfies certain incrementation axioms; its members are 'independent'. 
 
 
 ## Main content
 
-- `indep`, `dep`, `coindep`, `basis`, `circuit`, `spanning` : predicates of the form `α → Prop`
-  for various supermatroid properties. Defining these as predicates rather than set enables dot 
-  notation, but sometimes we treat them as sets. 
+- `indep`, `dep`, `coindep`, `basis`, `circuit`, `cocircuit`, `spanning` : predicates of the form 
+  `α → Prop` for various supermatroid properties. Defining these as predicates rather than set 
+  enables dot notation, but sometimes we treat them as sets. 
 
 
 ## References
@@ -45,7 +45,7 @@ def supermatroid.max_inf {α : Type u} [lattice α] (s : set α) : Prop :=
   ∀ x (b ∈ s), ∃ b' ∈ s, b ⊓ x ≤ b' ∧ ∀ (b'' ∈ s), b' ⊓ x ≤ b'' → b' ⊓ x = b'' ⊓ x
 
 def supermatroid.min_sup {α : Type u} [lattice α] (s : set α) : Prop := 
-  ∀ x (b ∈ s), ∃ b' ∈ s, b' ≤ b ⊔ x ∧ ∀ (b'' ∈ s), b'' ≤ b' ⊔ x → b'' ⊔ x = b' ⊔ x
+  ∀ x (b ∈ s), ∃ b' ∈ s, b' ≤ b ⊔ x ∧ ∀ (b'' ∈ s), b'' ≤ b' ⊔ x → b' ⊔ x = b'' ⊔ x
 
 open set 
 
@@ -56,26 +56,35 @@ open set
 (basis_antichain : is_antichain (≤) basis)
 (basis_middle    : supermatroid.satisfies_middle_axiom basis)
 (basis_max_inf   : supermatroid.max_inf basis)
-(basis_min_sup   : supermatroid.min_sup basis)
+--(basis_min_sup   : supermatroid.min_sup basis)
 
 namespace supermatroid 
-
-section basic 
 
 variables {α : Type u} [lattice α] {M : supermatroid α} 
   {i j b b' b'' x y c d r s t : α}
 
+section basic 
+
+/-- An element below a basis is independent-/
 def indep (M : supermatroid α) (x : α) := ∃ b, M.basis b ∧ x ≤ b 
 
+/-- An element that is not independent is depedent-/
 def dep (M : supermatroid α) (x : α) := ¬ M.indep x 
 
+/-- A basis of `x` is a maximal element subject to being independent below `x`-/
 def basis_of (M : supermatroid α) (i x : α) :=
   M.indep i ∧ i ≤ x ∧ ∀ j, M.indep j → j ≤ x → i ≤ j → i = j 
 
+/-- A circuit is a minimal dependent element-/
 def circuit (M : supermatroid α) : α → Prop := minimals (≤) M.indepᶜ 
 
+/-- An element above a basis is spanning-/
 def spanning (M : supermatroid α) (x : α) :=  ∃ b, M.basis b ∧ b ≤ x 
 
+/-- A cocircuit is a maximally nonspanning element-/
+def cocircuit (M : supermatroid α) : α → Prop := maximals (≤) M.spanningᶜ
+
+/-- A super of `x` is a minimal element subject to being spanning and above `x`-/
 def super_of (M : supermatroid α) (s x : α) := 
   M.spanning s ∧ x ≤ s ∧ ∀ s', M.spanning s' → x ≤ s' → s' ≤ s → s' = s
 
@@ -205,18 +214,6 @@ lemma basis.not_basis_of_lt (hb : M.basis b) (hxb : x < b) : ¬ M.basis x :=
 lemma indep.basis (hi : M.indep i) (hmax : ∀ j, M.indep j → i ≤ j → i = j) : M.basis i := 
 by {obtain ⟨b,hb, hbi⟩ := hi, have := (hmax b hb.indep hbi), rwa ← this at hb}
 
-lemma indep.le_basis_of (hi : M.indep i) (hix : i ≤ x) :
-  ∃ j, i ≤ j ∧ M.basis_of j x := 
-begin
-  obtain ⟨b,hb,hbi⟩ := hi, 
-  obtain ⟨b',⟨hb',hb'x,hb'_max⟩⟩ := M.basis_max_inf x _ hb, 
-  refine ⟨b' ⊓ x, le_inf ((le_inf hbi hix).trans hb'x) hix, hb'.inf_right_indep _,inf_le_right, _⟩, 
-  rintros j ⟨b'',hb'',hjb''⟩ hjx hb'j, 
-  have h₀ := (le_inf hjb'' hjx), 
-  rw [←(hb'_max _ hb'' (hb'j.trans hjb''))] at h₀, 
-  exact le_antisymm hb'j h₀, 
-end 
-
 lemma super_of.eq_of_spanning_le (hs : M.super_of s x) (hxt : x ≤ t) (hts : t ≤ s) 
   (ht : M.spanning t) : t = s := 
 hs.2.2 _ ht hxt hts
@@ -225,19 +222,6 @@ lemma super_of.not_spanning_of_lt (hs : M.super_of s x) (hts : t < s) (hxt : x �
   ¬ M.spanning t := 
 λ h, hts.ne (hs.eq_of_spanning_le hxt hts.le h)
 
-lemma spanning.super_of_le (hs : M.spanning s) (hxs : x ≤ s) : 
-  ∃ t, t ≤ s ∧ M.super_of t x :=
-begin
-  obtain ⟨b,hb,hbs⟩ := hs, 
-  obtain ⟨b',⟨hb',hb'x,hb'_min⟩⟩:= M.basis_min_sup x _ hb, 
-  have hb's : b' ≤ s := hb'x.trans (sup_le hbs hxs), 
-  refine ⟨b' ⊔ x, sup_le hb's hxs, hb'.sup_right_spanning _, le_sup_right, _⟩, 
-  rintros t ⟨b'',hb'',hb''t⟩ hxt htx, 
-  have h₀ := hb'_min _ hb'' (hb''t.trans htx), 
-  rw ←h₀ at htx ⊢, 
-  exact le_antisymm htx (sup_le hb''t hxt), 
-end
-
 lemma circuit.not_indep (hc : M.circuit c) : ¬ M.indep c := hc.1 
 
 lemma circuit.dep (hc : M.circuit c) : M.dep c := hc.1 
@@ -245,22 +229,7 @@ lemma circuit.dep (hc : M.circuit c) : M.dep c := hc.1
 lemma circuit.indep_of_lt (hC : M.circuit c) (hiC : i < c) : M.indep i := 
   by_contra (λ h, (hiC.ne.symm) (hC.2 h hiC.le))
 
-lemma exists_basis_of (M : supermatroid α) (x : α) : ∃ i, M.basis_of i x :=
-begin
-  obtain ⟨b,hb⟩ := M.exists_basis, 
-  obtain ⟨i,-,hi⟩ := (hb.inf_right_indep x).le_basis_of inf_le_right, 
-  exact ⟨i,hi⟩, 
-end 
-
-lemma exists_super_of (M : supermatroid α) (x : α) : 
-  ∃ s, M.super_of s x :=
-begin
-  obtain ⟨b,hb⟩ := M.exists_basis,
-  obtain ⟨s,-,hs⟩ := (hb.sup_right_spanning x).super_of_le le_sup_right, 
-  exact ⟨s,hs⟩,
-end 
-
-lemma indep.augment (hi : M.indep i) (hi_nb : ¬M.basis i) (hb : M.basis b) : 
+lemma indep.increment (hi : M.indep i) (hi_nb : ¬M.basis i) (hb : M.basis b) : 
   ∃ i', i < i' ∧ i' ≤ i ⊔ b ∧ M.indep i' := 
 begin
   obtain ⟨b₁, hb₁, hib₁⟩ := hi, 
@@ -283,19 +252,55 @@ begin
   subst h', rwa (hxbi.antisymm hbsx), 
 end 
 
+lemma top_spanning [order_top α] (M : supermatroid α) : M.spanning ⊤ := 
+exists.elim (M.exists_basis) (λ b hb, ⟨b,hb,le_top⟩)
+
+lemma bases_inj {M₁ M₂ : supermatroid α} (hb : M₁.basis = M₂.basis)  : M₁ = M₂ := by {ext, rw hb}
+
+lemma indep_inj {M₁ M₂ : supermatroid α} (hb : M₁.indep = M₂.indep)  : M₁ = M₂ := 
+by {ext, simp_rw [basis_iff_maximal_indep, hb]}
+
 lemma basis_of.basis (hb : M.basis_of b x) (hx : M.spanning x) : M.basis b := 
- by_contra (λ h, 
-   ((exists.elim hx (λ b' hb', exists.elim (hb.indep.augment h (hb'.1))
-   (λ j hj, hb.not_indep_of_lt hj.1 (hj.2.1.trans (sup_le hb.le hb'.2)) hj.2.2 )))))
+begin
+  by_contradiction h, 
+  obtain ⟨b',hb',hxb'⟩ := hx, 
+  obtain ⟨j,hjb,hbj,hj⟩ := hb.indep.increment h hb', 
+  refine hb.not_indep_of_lt hjb (le_trans hbj (sup_le hb.le hxb')) hj, 
+end 
 
 lemma super_of.basis (hs : M.super_of s x) (hx : M.indep x) : M.basis s :=
 begin
-  obtain ⟨b,hbx,hbs⟩ := hx.le_basis_of hs.le, 
-  have hb := hbs.basis hs.spanning, 
   by_contradiction h, 
-  exact hs.not_spanning_of_lt (lt_of_le_of_ne hbs.le (λ h', h (h' ▸ hb))) hbx hb.spanning, 
+  obtain ⟨b',hb',hxb'⟩ := hx, 
+  obtain ⟨t,hts, hst,ht⟩ := hs.spanning.decrement h hb', 
+  exact hs.not_spanning_of_lt hts (le_trans (le_inf hs.le hxb') hst) ht, 
 end 
 
+end basic 
+
+section infinite_axioms_needed
+
+--maxinf
+lemma indep.le_basis_of (hi : M.indep i) (hix : i ≤ x) :
+  ∃ j, i ≤ j ∧ M.basis_of j x := 
+begin
+  obtain ⟨b,hb,hbi⟩ := hi, 
+  obtain ⟨b',⟨hb',hb'x,hb'_max⟩⟩ := M.basis_max_inf x _ hb, 
+  refine ⟨b' ⊓ x, le_inf ((le_inf hbi hix).trans hb'x) hix, hb'.inf_right_indep _,inf_le_right, _⟩, 
+  rintros j ⟨b'',hb'',hjb''⟩ hjx hb'j, 
+  have h₀ := (le_inf hjb'' hjx), 
+  rw [←(hb'_max _ hb'' (hb'j.trans hjb''))] at h₀, 
+  exact le_antisymm hb'j h₀, 
+end 
+
+--maxinf
+lemma exists_basis_of (M : supermatroid α) (x : α) : ∃ i, M.basis_of i x :=
+begin
+  obtain ⟨b,hb⟩ := M.exists_basis, 
+  obtain ⟨i,-,hi⟩ := (hb.inf_right_indep x).le_basis_of inf_le_right, 
+  exact ⟨i,hi⟩, 
+end 
+--maxinf
 lemma indep.le_basis_sup (hi : M.indep i) (hb : M.basis b) : 
    ∃ b', M.basis b' ∧ i ≤ b' ∧ b' ≤ i ⊔ b :=
 begin
@@ -303,21 +308,7 @@ begin
   exact ⟨b',hb'.basis ⟨b,hb,le_sup_right⟩, hib', hb'.le⟩, 
 end 
 
-lemma spanning.basis_inf_le (hs : M.spanning s) (hb : M.basis b) :
-  ∃ b', M.basis b' ∧ b' ≤ s ∧ s ⊓ b ≤ b' := 
-begin
-  obtain ⟨b₁,hb₁,hb₁s⟩ := hs, 
-  obtain ⟨b',hb',hsb',hb's⟩ := M.basis_middle (s ⊓ b) s _ hb _ hb₁ inf_le_left inf_le_right hb₁s, 
-  refine ⟨b',hb', hb's, hsb'⟩, 
-end 
-
-lemma spanning.basis_inf_lt (hs : M.spanning s) (hs_nb : ¬ M.basis s) (hb : M.basis b) :
-  ∃ b', M.basis b' ∧ b' < s ∧ s ⊓ b ≤ b' := 
-begin
-  obtain ⟨b', hb', h₁, h₂⟩ := hs.basis_inf_le hb, 
-  exact ⟨b', hb', lt_of_le_of_ne h₁ (λ h, hs_nb (by rwa ←h)), h₂⟩, 
-end 
-
+--maxinf
 lemma indep.lt_basis_sup (hi : M.indep i) (hi_nb : ¬ M.basis i) (hb : M.basis b) :
   ∃ b', M.basis b' ∧ i < b' ∧ b' ≤ i ⊔ b :=
 begin
@@ -325,14 +316,7 @@ begin
   exact ⟨b', hb', lt_of_le_of_ne h₁ (λ h, (hi_nb (h.symm ▸ hb')).elim), h₂⟩, 
 end 
 
-lemma basis.lt_basis_sup (hb : M.basis b) (hib : i < b) (hb' : M.basis b'):
-  ∃ b₀, M.basis b₀ ∧ i < b₀ ∧ b₀ ≤ i ⊔ b' :=
-(hb.indep_of_le hib.le).lt_basis_sup (hb.not_basis_of_lt hib) hb' 
-
-lemma basis.basis_inf_lt (hb : M.basis b) (hbs : b < s) (hb' : M.basis b'): 
-  ∃ b₀, M.basis b₀ ∧ b₀ < s ∧ s ⊓ b' ≤ b₀ := 
-(hb.spanning_of_le hbs.le).basis_inf_lt (hb.lt_not_basis hbs) hb'
-
+--maxinf
 lemma basis.inf_basis_of (hb : M.basis b) (x : α) : 
   ∃ b', b' ≤ x ⊔ b ∧ M.basis b' ∧ (M.basis_of (b' ⊓ x) x) :=
 begin
@@ -343,37 +327,71 @@ begin
   rwa ←hi.eq_of_le_indep (le_trans (le_inf bib' hi.le) hb'j) hjx hj,  
 end 
 
-lemma basis.sup_super_of (hb : M.basis b) (x : α) :
-  ∃ b', x ⊓ b ≤ b' ∧ M.basis b' ∧ M.super_of (b' ⊔ x) x  :=
-begin
-  obtain ⟨s,hs⟩ := M.exists_super_of x, 
-  obtain ⟨b',hb',hsb',hb's⟩ := hs.spanning.basis_inf_le hb, 
-  refine ⟨b', le_trans (le_inf (inf_le_left.trans hs.le) inf_le_right ) hb's, hb', 
-    (hb'.sup_right_spanning _).super_of le_sup_right (λ t ht hxt h, h.antisymm (sup_le _ hxt))⟩, 
-  rwa (hs.eq_of_spanning_le hxt (h.trans (sup_le hsb' hs.le)) ht), 
-end 
+--maxinf
+lemma basis.lt_basis_sup (hb : M.basis b) (hib : i < b) (hb' : M.basis b'):
+  ∃ b₀, M.basis b₀ ∧ i < b₀ ∧ b₀ ≤ i ⊔ b' :=
+(hb.indep_of_le hib.le).lt_basis_sup (hb.not_basis_of_lt hib) hb' 
 
-lemma top_spanning [order_top α] (M : supermatroid α) : M.spanning ⊤ := 
-exists.elim (M.exists_basis) (λ b hb, ⟨b,hb,le_top⟩)
 
-lemma indep.le_basis (hi : M.indep i) : 
-  ∃ b, i ≤ b ∧ M.basis b := 
-by {obtain ⟨b',hb'⟩ := M.exists_basis, obtain ⟨b,hb⟩ := hi.le_basis_sup hb', exact ⟨b,hb.2.1, hb.1⟩}
+-- --minsup
+-- lemma spanning.super_of_le (hs : M.spanning s) (hxs : x ≤ s) : 
+--   ∃ t, t ≤ s ∧ M.super_of t x :=
+-- begin
+--   obtain ⟨b,hb,hbs⟩ := hs, 
+--   obtain ⟨b',⟨hb',hb'x,hb'_min⟩⟩:= M.basis_min_sup x _ hb, 
+--   have hb's : b' ≤ s := hb'x.trans (sup_le hbs hxs), 
+--   refine ⟨b' ⊔ x, sup_le hb's hxs, hb'.sup_right_spanning _, le_sup_right, _⟩, 
+--   rintros t ⟨b'',hb'',hb''t⟩ hxt htx, 
+--   have h₀ := hb'_min _ hb'' (hb''t.trans htx), 
+--   rw h₀ at htx ⊢, 
+--   exact le_antisymm htx (sup_le hb''t hxt), 
+-- end
 
-lemma indep.lt_basis (hi : M.indep i) (hi_nb : ¬ M.basis i):
-  ∃ b, i < b ∧ M.basis b := 
-exists.elim hi.le_basis (λ b hb, ⟨b, lt_of_le_of_ne' hb.1 (λ h, hi_nb (h ▸ hb.2)), hb.2⟩)
+-- --minsup
+-- lemma exists_super_of (M : supermatroid α) (x : α) : 
+--   ∃ s, M.super_of s x :=
+-- begin
+--   obtain ⟨b,hb⟩ := M.exists_basis,
+--   obtain ⟨s,-,hs⟩ := (hb.sup_right_spanning x).super_of_le le_sup_right, 
+--   exact ⟨s,hs⟩,
+-- end 
 
-lemma indep_iff_le_basis : 
-  M.indep i ↔ ∃ b, i ≤ b ∧ M.basis b := 
-⟨indep.le_basis, λ h, exists.elim h (λ b hi, hi.2.indep_of_le hi.1)⟩
+-- --minsup
+-- lemma spanning.basis_inf_le (hs : M.spanning s) (hb : M.basis b) :
+--   ∃ b', M.basis b' ∧ b' ≤ s ∧ s ⊓ b ≤ b' := 
+-- begin
+--   obtain ⟨b₁,hb₁,hb₁s⟩ := hs, 
+--   obtain ⟨b',hb',hsb',hb's⟩ := M.basis_middle (s ⊓ b) s _ hb _ hb₁ inf_le_left inf_le_right hb₁s, 
+--   refine ⟨b',hb', hb's, hsb'⟩, 
+-- end 
 
-lemma bases_inj {M₁ M₂ : supermatroid α} (hb : M₁.basis = M₂.basis)  : M₁ = M₂ := by {ext, rw hb}
+-- --minsup
+-- lemma spanning.basis_inf_lt (hs : M.spanning s) (hs_nb : ¬ M.basis s) (hb : M.basis b) :
+--   ∃ b', M.basis b' ∧ b' < s ∧ s ⊓ b ≤ b' := 
+-- begin
+--   obtain ⟨b', hb', h₁, h₂⟩ := hs.basis_inf_le hb, 
+--   exact ⟨b', hb', lt_of_le_of_ne h₁ (λ h, hs_nb (by rwa ←h)), h₂⟩, 
+-- end 
 
-lemma indep_inj {M₁ M₂ : supermatroid α} (hb : M₁.indep = M₂.indep)  : M₁ = M₂ := 
-by {ext, simp_rw [basis_iff_maximal_indep, hb]}
+-- --minsup
+-- lemma basis.basis_inf_lt (hb : M.basis b) (hbs : b < s) (hb' : M.basis b'): 
+--   ∃ b₀, M.basis b₀ ∧ b₀ < s ∧ s ⊓ b' ≤ b₀ := 
+-- (hb.spanning_of_le hbs.le).basis_inf_lt (hb.lt_not_basis hbs) hb'
 
-end basic 
+-- --minsup
+-- lemma basis.sup_super_of (hb : M.basis b) (x : α) :
+--   ∃ b', x ⊓ b ≤ b' ∧ M.basis b' ∧ M.super_of (b' ⊔ x) x  :=
+-- begin
+--   obtain ⟨s,hs⟩ := M.exists_super_of x, 
+--   obtain ⟨b',hb',hsb',hb's⟩ := hs.spanning.basis_inf_le hb, 
+--   refine ⟨b', le_trans (le_inf (inf_le_left.trans hs.le) inf_le_right ) hb's, hb', 
+--     (hb'.sup_right_spanning _).super_of le_sup_right (λ t ht hxt h, h.antisymm (sup_le _ hxt))⟩, 
+--   rwa (hs.eq_of_spanning_le hxt (h.trans (sup_le hsb' hs.le)) ht), 
+-- end 
 
+
+
+
+end infinite_axioms_needed
 
 end supermatroid 
