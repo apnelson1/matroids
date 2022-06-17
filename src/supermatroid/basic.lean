@@ -273,7 +273,7 @@ begin
   refine ⟨b₁,hb₁,hbi.trans hib₁, λ b₂ hb₂ hb₁b₂, inf_eq_inf_of_le_of_le hb₁b₂ _⟩, 
   have hib₂ := (le_inf hib₁ hix).trans hb₁b₂,
   rwa ←hmax ⟨⟨b₂,hb₂,(inf_le_left : b₂ ⊓ x ≤ b₂)⟩, 
-    ⟨inf_le_inf_of_inf_le (hbi.trans hib₂),inf_le_right⟩⟩ (le_inf hib₂ hix), 
+    ⟨le_inf (hbi.trans hib₂) inf_le_right ,inf_le_right⟩⟩ (le_inf hib₂ hix), 
 end 
 
 lemma indep.le_basis_of (hi : M.indep i) (hix : i ≤ x) :
@@ -322,7 +322,7 @@ section dual
 
 variables [lattice α] [is_modular_lattice α]
 
-lemma min_upper (M : supermatroid α) : min_upper M.basis := 
+lemma basis_has_min_upper (M : supermatroid α) : min_upper M.basis := 
 begin
   rintros x y ⟨s,⟨b,hb,hbs⟩,hxs,hsy⟩, 
   obtain ⟨b₁,hb₁b,hb₁,hb₁x⟩ := hb.inf_basis_of x, 
@@ -339,16 +339,16 @@ begin
 
   obtain ⟨b₃, hb₃, hjb₃, hb₃j⟩ := hb₁.lt_basis_sup hj_lt hb₂, 
   
-  have h1 := @inf_lt_inf_of_lt_of_sup_le_sup _ _ _ _ _ x hjb₃ (sup_le_sup_of_le_sup _), 
+  have h1 := @inf_lt_inf_of_lt_of_sup_le_sup _ _ _ _ _ x hjb₃ (sup_le _ le_sup_right), 
   swap, 
   { rw [hj, inf_comm, inf_sup_assoc_of_le b₁ le_sup_right, le_inf_iff] at hb₃j, 
     rw [hj, inf_comm, inf_sup_assoc_of_le b₁ le_sup_left, le_inf_iff], 
     refine ⟨hb₃j.1, hb₃j.2.trans (sup_le le_sup_left (hb₂t.trans _))⟩,
     rwa sup_comm},
-  refine (hb₁x.not_indep_of_lt (lt_of_le_of_lt (inf_le_inf_of_inf_le _) h1) 
+  refine (hb₁x.not_indep_of_lt (lt_of_le_of_lt (le_inf _ inf_le_right) h1) 
     inf_le_right (hb₃.inf_right_indep x)), 
   rw [hj, inf_comm, @inf_comm _ _ _ (x ⊔ b₂)], 
-  exact inf_le_inf_of_inf_le (inf_le_left.trans le_sup_left),  
+  exact le_inf (inf_le_left.trans le_sup_left) inf_le_right,  
 end 
 
 /-- The matroid on the dual lattice with the same set of bases as `M`-/
@@ -357,27 +357,38 @@ def order_dual (M:  supermatroid α) : supermatroid αᵒᵈ :=
   exists_basis := M.exists_basis,
   basis_antichain := M.basis_antichain.to_dual,
   basis_has_middle := middle_dual M.basis_has_middle,
-  basis_has_max_lower := max_lower_dual M.min_upper}
+  basis_has_max_lower := max_lower_dual M.basis_has_min_upper}
 
 postfix `ᵈ`:(max + 1) := order_dual 
 
 open has_involution
 
 def dual [has_involution α] (M : supermatroid α) : supermatroid α := 
-{ basis := invo '' M.basis, 
+{ basis := invo ⁻¹' M.basis, 
   exists_basis := exists.elim M.exists_basis 
-    (λ b hb, ⟨bᵒ, by rwa [mem_image_invo', invo_invo]⟩),
-  basis_antichain := image_antichain M.basis_antichain, 
+    (λ b hb, ⟨bᵒ, by rwa [mem_preimage_invo', invo_invo]⟩),
+  basis_antichain := preimage_antichain M.basis_antichain, 
   basis_has_middle := 
   begin
     intros x y hxy, 
-    rw [←invo_invo x, ←invo_invo y, ←image_Ici, ←image_Icc, ←image_Iic, image_inter, image_inter, image_inter, 
-    nonempty_image_iff, nonempty_image_iff, nonempty_image_iff], 
+    
+    simp only [←image_invo_eq_preimage_invo, image_inter_nonempty_iff, preimage_Ici, 
+      preimage_Iic, preimage_Icc], 
     exact flip (M.basis_has_middle yᵒ xᵒ (invo_le_iff.mpr hxy)), 
-    all_goals {apply invo_inj},  
-
-  end , 
-  basis_has_max_lower := sorry, 
+  end, 
+  basis_has_max_lower := 
+  begin
+    intros x y h, 
+    simp only [←image_invo_eq_preimage_invo, lower_set_of_image_invo,image_inter_nonempty_iff, 
+      preimage_Icc] at h, 
+    
+    obtain ⟨a,⟨h₁,h₂⟩,h₃⟩ := M.basis_has_min_upper yᵒ xᵒ h, 
+    rw [lower_set_of_preimage_invo], 
+    refine ⟨aᵒ, ⟨by rwa [mem_preimage, invo_invo],by rwa [←mem_image_invo, image_Icc]⟩,_⟩,
+    rintros p ⟨hp1,hp2⟩ hap, 
+    rw [←invo_invo p, ←mem_image_invo, image_Icc] at hp2, 
+    rw [(h₃ ⟨hp1,hp2⟩ (invo_le_comm.mp hap)), invo_invo], 
+  end, 
 
 }
 
