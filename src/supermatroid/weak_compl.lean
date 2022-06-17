@@ -95,7 +95,7 @@ lemma invo_eq_compl (x : α): xᵒ = xᶜ := rfl
 
 end boolean_algebra 
 
-end has_invoolution
+end has_involution
 
 
 

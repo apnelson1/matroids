@@ -9,6 +9,7 @@ import order.minimal
 import order.upper_lower
 import order.modular_lattice
 import .weak_compl
+import order.atoms
 
 /-!
 # supermatroids 
@@ -85,7 +86,7 @@ def indep (M : supermatroid α) (x : α) := ∃ b, M.basis b ∧ x ≤ b
 def spanning (M : supermatroid α) (x : α) :=  ∃ b, M.basis b ∧ b ≤ x 
 
 /-- An element that is not independent is depedent-/
-def dep (M : supermatroid α) (x : α) := ¬ M.indep x 
+@[reducible] def dep (M : supermatroid α) (x : α) := ¬ M.indep x 
 
 /-- A basis of `x` is a maximal element subject to being independent and below `x`-/
 def basis_of (M : supermatroid α) (i x : α) :=
@@ -110,21 +111,16 @@ exists.elim hi (λ b hb, ⟨b, ⟨hb.1, hji.trans hb.2⟩⟩)
 lemma bot_indep [order_bot α] (M : supermatroid α): M.indep ⊥ := 
 exists.elim M.exists_basis (λ b h, ⟨b, h, bot_le⟩)
 
-lemma indep.not_dep (hi : M.indep i) : ¬ M.dep i := 
-  not_not_mem.mpr hi 
+lemma indep.not_dep (hi : M.indep i) : ¬ M.dep i := by rwa [not_not]
 
-lemma dep.not_indep (hx : M.dep x) : ¬ M.indep x := 
-  λ h, (h.not_dep hx).elim 
+lemma dep.not_indep (hx : M.dep x) : ¬ M.indep x := hx 
 
-lemma not_dep_iff_indep : ¬ M.dep i ↔ M.indep i  := 
-  ⟨λ h, by rwa [dep, not_not] at h, indep.not_dep⟩  
+lemma not_dep_iff_indep : ¬ M.dep i ↔ M.indep i  := by rw [not_not]
+  
+lemma indep_or_dep (i : α) : M.indep i ∨ M.dep i := em _  
 
-lemma indep_or_dep (i : α) : M.indep i ∨ M.dep i := 
-  by {rw ←not_dep_iff_indep, apply em'}
-
-lemma not_indep_iff_dep : ¬ M.indep i ↔ M.dep i := 
-  by rw [←not_dep_iff_indep, not_not]
-
+lemma not_indep_iff_dep : ¬ M.indep i ↔ M.dep i := iff.rfl 
+  
 lemma dep.dep_of_lt (hx : M.dep x) (hxy : x ≤ y) : M.dep y := 
 not_indep_iff_dep.mp (λ h, (hx.not_indep (h.indep_of_le hxy)).elim)
 
@@ -490,5 +486,52 @@ lemma basis.sup_super_of (hb : M.basis b) (x : α) :
 @basis.inf_basis_of αᵒᵈ _ _ Mᵈ hb x
 
 end spanning 
+
+
+section circuit
+
+variables [complete_lattice α] [is_atomistic α] [is_coatomistic α] {M : supermatroid α}
+
+lemma dep.exists_circuit_le (hx : M.dep x) : ∃ c, M.circuit c ∧ c ≤ x := 
+begin
+  obtain ⟨i,hi⟩ := M.exists_basis_of x, 
+  
+  obtain ⟨z, hzx, hzi, hzx⟩ := exists_atom_of_not_le (λ h, hx (hi.indep_of_le h)),
+  
+
+
+  set ps := {p | is_coatom p ∧ M.dep (p ⊓ (i ⊔ z))} with hps, 
+  refine ⟨Inf ps, ⟨λ hpi, _ ,sorry⟩, le_of_le_forall_coatom (λ q hq hxq, _)⟩, 
+  { },
+  convert Inf_le _, 
+  simp only [mem_set_of_eq, hps], 
+  refine ⟨hq, hi.not_indep_of_lt 
+    (lt_of_le_of_ne (le_inf (hi.le.trans hxq) le_sup_left) 
+      (λ h, hzx (by {rw h, simp [hzi.trans hxq]}))) 
+    (inf_le_of_right_le (sup_le hi.le hzi))⟩,  
+  
+  
+  
+
+
+
+
+  
+
+
+  --set sc := {x ∈ si | M.indep (Sup ((si.insert z) \ {x}))}.insert z with hsc,
+  
+  --have hciz : Sup sc ≤ Sup (si.insert z) := Sup_le_Sup (insert_subset_insert (sep_subset _ _)),  
+  
+  -- refine ⟨Sup sc, ⟨λ (hci : M.indep (Sup sc)),_,_⟩,_⟩,  
+  -- { obtain ⟨j,hj,hcj⟩ := hci.le_basis_of hciz, },
+  
+  
+  
+  
+end 
+
+
+end circuit
 
 end supermatroid 
