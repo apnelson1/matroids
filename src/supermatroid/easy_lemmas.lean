@@ -3,11 +3,13 @@ import .weak_compl
 
 universe u
 
+variables {α : Type u} 
+
 section upper_lower
 
 open has_involution 
 
-variables {α : Type u} [preorder α]
+variables [preorder α] {x y z a b: α}
 
 @[reducible] def lower_set_of (s : set α) : set α := {x | ∃ y ∈ s, x ≤ y}
 @[reducible] def upper_set_of (s : set α) : set α := {x | ∃ y ∈ s, y ≤ x}
@@ -26,7 +28,7 @@ by rw [image_invo_eq_preimage_invo, lower_set_of_preimage_invo, image_invo_eq_pr
 
 lemma upper_set_of_image_invo [has_involution α] (s : set α) : 
   upper_set_of (invo '' s) = invo '' (lower_set_of s) :=
-by {nth_rewrite 1 ←(invo_invo_image s), rw [lower_set_of_image_invo, invo_invo_image]}
+by {nth_rewrite 1 ←(@invo_invo_image _ s), rw [lower_set_of_image_invo, invo_invo_image]}
 
 lemma upper_set_of_preimage_invo [has_involution α] (s : set α): 
   upper_set_of (invo ⁻¹' s) = invo ⁻¹' (lower_set_of s) :=
@@ -37,9 +39,32 @@ lemma set.Icc_dual''' (x y : α) : @set.Icc αᵒᵈ _ x y = @set.Icc α _ y x :
 
 end upper_lower
 
+section covby
+
+variables [partial_order α] {x y z a b : α}
+
+lemma covby.eq_of_le_of_lt (hab : a ⋖ b) (hax : a ≤ x) (hxb : x < b) : a = x :=
+by_contra (λ h, hab.2 (hax.lt_of_ne h) hxb)
+
+lemma covby.eq_of_lt_of_le (hab : a ⋖ b) (hax : a < x) (hxb : x ≤ b) : x = b :=
+by_contra (λ h, hab.2 hax (hxb.lt_of_ne h))
+
+lemma covby.eq_or_of_le_of_le (hab : a ⋖ b) (hax : a ≤ x) (hxb : x ≤ b) : x = a ∨ x = b :=
+begin
+  obtain ⟨rfl, hax⟩ := em (a = x), 
+    exact or.inl rfl, 
+  exact or.inr ((hab.eq_of_lt_of_le (hax.lt_of_ne h)) hxb), 
+end 
+
+lemma wcovby.covby_or_eq (hab : a ⩿ b) : a ⋖ b ∨ a = b := wcovby_iff_covby_or_eq.mp hab
+
+end covby
+
+
+
 section lattice
 
-variables {α : Type u} {a b x : α} [lattice α] 
+variables [lattice α]  {x y z a b: α}
 
 lemma inf_le_inf_of_inf_le (h : a ⊓ x ≤ b) : a ⊓ x ≤ b ⊓ x := le_inf h inf_le_right 
 
@@ -54,23 +79,141 @@ lemma sup_eq_sup_of_le_of_le (h1 : a ≤ b ⊔ x) (h2 : b ≤ a ⊔ x) : a ⊔ x
 
 end lattice 
 
+section modular
+
+variables [lattice α] [is_modular_lattice α] {x y z a b: α}
+
+lemma eq_of_le_of_inf_le_of_sup_le' (hxy : x ≤ y) (hinf : y ⊓ z ≤ x) (hsup : y ≤ x ⊔ z) : x = y :=
+eq_of_le_of_inf_le_of_sup_le hxy (le_inf hinf inf_le_right) (sup_le hsup le_sup_right) 
+
+lemma inf_coatom_wcovby [order_top α] (x : α) (ha : is_coatom a) : x ⊓ a ⩿ x := 
+begin
+  by_cases hxa : x ≤ a, 
+  { rw inf_eq_left.mpr hxa, exact rfl.wcovby}, 
+  refine covby.wcovby ⟨inf_le_left.lt_of_ne (λ h, hxa (inf_eq_left.mp h)), λ y hxy hyx, hyx.ne _⟩,  
+  refine @eq_of_le_of_inf_le_of_sup_le' _ _ _ _ _ a hyx.le hxy.le _, 
+  rw ha.2 (y ⊔ a) (le_sup_right.lt_of_ne (λ hay, _)), 
+  exact le_top, 
+  rw [eq_comm, sup_eq_right] at hay, 
+  exact (lt_of_lt_of_le hxy (le_inf hyx.le hay)).ne rfl,
+end 
+
+lemma sup_atom_wcovby [order_bot α] (x : α) (ha : is_atom a) : x ⩿ x ⊔ a := 
+(@inf_coatom_wcovby αᵒᵈ _ _ _ _ _ ha).to_dual  
+
+lemma sup_atom_covby_of_not_le [order_bot α] {x a : α} (ha : is_atom a) (hx : ¬ a ≤ x) : 
+  x ⋖ x ⊔ a :=
+(sup_atom_wcovby x ha).covby_of_ne (λ h, hx (sup_eq_left.mp h.symm))
+
+lemma inf_coatom_covby_of_not_le [order_top α] {x a : α} (ha : is_coatom a) (hx : ¬ x ≤ a) : 
+  x ⊓ a ⋖ x :=
+(@sup_atom_covby_of_not_le αᵒᵈ _ _ _ x a ha hx).to_dual
+
+end modular
+
 section atoms
 
-class is_strongly_atomic (α : Type u) [preorder α] : Prop :=
-(exists_left_covby_of_lt : ∀ (x y : α), x < y → ∃ a, x ⋖ a ∧ a ≤ y) 
+variables [complete_lattice α] [is_atomistic α] {x y z a b : α}
 
-class is_strongly_coatomic (α : Type u) [preorder α] : Prop :=
-(exists_covby_right_of_lt : ∀ (x y : α), x < y → ∃ a, x ≤ a ∧ a ⋖ y)
+lemma le_of_forall_atom_le (h : ∀ a, is_atom a → a ≤ x → a ≤ y) : x ≤ y :=
+by {obtain ⟨sx,rfl,hsx⟩ := eq_Sup_atoms x, exact Sup_le (λ b hb, h b (hsx b hb) (le_Sup hb))} 
+  
+lemma le_iff_forall_atom_le : x ≤ y ↔ (∀ a, is_atom a → a ≤ x → a ≤ y) := 
+⟨λ hxy a ha hax, hax.trans hxy, le_of_forall_atom_le⟩
 
---variables {α : Type u} [lattice α] [is_modular_lattice α]
+lemma eq_of_atom_le_iff_atom_le (h : ∀ a, is_atom a → (a ≤ x ↔ a ≤ y)) : x = y := 
+(le_of_forall_atom_le (λ a ha, (h a ha).mp)).antisymm (le_of_forall_atom_le (λ a ha, (h a ha).mpr))
 
-instance {α : Type u} [preorder α] [is_strongly_atomic α] : is_strongly_coatomic αᵒᵈ :=
-⟨ λ x y hxy, by {obtain ⟨a,hya,hax⟩ := @is_strongly_atomic.exists_left_covby_of_lt α _ _ y x hxy, 
-    exact ⟨a,hax,covby.of_dual hya⟩}⟩ 
+lemma exists_atom_of_not_le (hxy : ¬ (x ≤ y)) : ∃ a, is_atom a ∧ a ≤ x ∧ ¬ (a ≤ y) :=
+by_contra (λ h, hxy (le_of_forall_atom_le (by {push_neg at h, exact h}))) 
 
--- instance {α : Type u} : is_strongly_atomic (set α) :=
---   exists_covby_left
+lemma exists_atom_of_lt (hxy : x < y) : ∃ a, is_atom a ∧ a ≤ y ∧ ¬ (a ≤ x) :=
+exists_atom_of_not_le (not_le_of_lt hxy)
+
+lemma exists_atom_le_of_ne_bot (hx : x ≠ ⊥) : ∃ a, is_atom a ∧ a ≤ x := 
+by {obtain ⟨a,ha,hax,-⟩ := exists_atom_of_lt (bot_le.lt_of_ne' hx), exact ⟨a,ha,hax⟩}
+
+lemma covby.exists_atom_sup (hxy : x ⋖ y) : ∃ a, is_atom a ∧ y = x ⊔ a := 
+begin
+  obtain ⟨a,ha,hxa,hay⟩ := exists_atom_of_lt hxy.lt, 
+  exact ⟨a, ha, (hxy.eq_of_lt_of_le (le_sup_left.lt_of_not_le (by simpa)) 
+    (sup_le hxy.le hxa)).symm⟩,    
+end 
+
+lemma exists_sup_atom_of_inf_coatom_of_ne_bot [is_modular_lattice α] {x a : α} (hx : x ≠ ⊥) 
+(ha : is_coatom a) : 
+  ∃ b, is_atom b ∧ x = (x ⊓ a) ⊔ b := 
+begin
+  obtain ⟨b,hb,hbx⟩ := exists_atom_le_of_ne_bot hx,
+  exact or.elim (inf_coatom_wcovby x ha).covby_or_eq (λ h, h.exists_atom_sup) 
+    (λ h, ⟨b, hb, by rw [h, sup_eq_left.mpr hbx]⟩),
+end 
+
 
 end atoms
 
+section coatoms
 
+variables [complete_lattice α] [is_coatomistic α] {x y z a : α}
+
+lemma le_of_le_forall_coatom (h : ∀ a, is_coatom a → y ≤ a → x ≤ a) : x ≤ y :=
+@le_of_forall_atom_le αᵒᵈ _ _ _ _ h
+  
+lemma le_iff_le_forall_coatom : x ≤ y ↔ (∀ a, is_coatom a → y ≤ a → x ≤ a) := 
+@le_iff_forall_atom_le αᵒᵈ_ _ _ _
+
+lemma eq_of_le_coatom_iff_le_coatom (h : ∀ a, is_coatom a → (x ≤ a ↔ y ≤ a)) : x = y := 
+@eq_of_atom_le_iff_atom_le αᵒᵈ _ _ _ _ h
+
+lemma exists_coatom_of_not_le (hxy : ¬ (x ≤ y)) : ∃ a, is_coatom a ∧ y ≤ a ∧ ¬ (x ≤ a) :=
+@exists_atom_of_not_le αᵒᵈ _ _ _ _ hxy  
+
+lemma exists_coatom_of_lt (hxy : x < y) : ∃ a, is_coatom a ∧ x ≤ a ∧ ¬ (y ≤ a) :=
+@exists_atom_of_lt αᵒᵈ _ _ _ _ hxy
+
+lemma exists_le_coatom_of_ne_top (hx : x ≠ ⊤) : ∃ b, is_coatom b ∧ x ≤ b := 
+@exists_atom_le_of_ne_bot αᵒᵈ _ _ _ hx 
+
+lemma covby.exists_coatom_inf (hxy : x ⋖ y): ∃ a, is_coatom a ∧ x = y ⊓ a :=
+@covby.exists_atom_sup αᵒᵈ _ _ _ _ hxy.to_dual 
+
+lemma exists_inf_coatom_of_sup_atom_of_ne_top [is_modular_lattice α] {x a : α} (hx : x ≠ ⊤) 
+(ha : is_atom a): 
+  ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b := 
+@exists_sup_atom_of_inf_coatom_of_ne_bot αᵒᵈ _ _ _ _ _ hx ha
+
+
+
+-- lemma foo [is_atomistic α] [is_modular_lattice α] (ha : is_atom a) (hx : x ≠ ⊤) : 
+--   ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b :=
+-- begin
+--   -- obtain ⟨c,hc⟩ : sx.nonempty := 
+--   --   set.ne_empty_iff_nonempty.mp (by {rintro rfl, rw Inf_empty at hx, exact hx rfl}),
+--   by_cases hax : a ≤ x, 
+--   { obtain ⟨b, hb, hxb⟩ := le_coatom_of_ne_top hx, 
+--     exact ⟨b,hb, by {rw [sup_eq_left.mpr hax, inf_eq_left.mpr hxb]}⟩},
+--   obtain ⟨b,hb,hxb,hab⟩ := exists_coatom_of_not_le hax, 
+--   refine ⟨b,hb,_⟩, 
+--   obtain ⟨hb1 | hb1, ha1 | ha1⟩ := 
+--     ⟨ wcovby_iff_covby_or_eq.mp (inf_coatom_wcovby (x ⊔ a) hb),
+--       wcovby_iff_covby_or_eq.mp (sup_atom_wcovby x ha)⟩, 
+--   { refine le_antisymm (le_inf le_sup_left hxb) _, },
+--   --exact ⟨c, hsx _ hc, by {rw [sup_eq_left.mpr ha, eq_comm, inf_eq_left], exact Inf_le hc}⟩,  
+-- end 
+
+-- lemma foo [is_atomistic α] (ha : is_atom a) (hx : x ≠ ⊤) : ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b :=
+-- begin
+--   obtain ⟨sx, rfl, hsx⟩ := eq_Inf_coatoms x, 
+--   obtain ⟨c,hc⟩ : sx.nonempty := 
+--     set.ne_empty_iff_nonempty.mp (by {rintro rfl, rw Inf_empty at hx, exact hx rfl}),
+--   by_cases ha : a ≤ Inf sx, 
+--   exact ⟨c, hsx _ hc, by {rw [sup_eq_left.mpr ha, eq_comm, inf_eq_left], exact Inf_le hc}⟩,
+--   obtain ⟨b,hb,hxb,hbxa⟩ := exists_coatom_of_not_le (sorry : ¬ (Inf sx ⊔ a ≤ Inf sx))  , 
+--   refine ⟨b,hb,le_antisymm (le_inf le_sup_left hxb) _⟩, 
+--   rw le_iff_le_forall_coatom, 
+--   intros a' ha' hxa', 
+
+
+end 
+
+end coatoms 
