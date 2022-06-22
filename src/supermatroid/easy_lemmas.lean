@@ -11,28 +11,28 @@ open has_involution
 
 variables [preorder α] {x y z a b: α}
 
-@[reducible] def lower_set_of (s : set α) : set α := {x | ∃ y ∈ s, x ≤ y}
-@[reducible] def upper_set_of (s : set α) : set α := {x | ∃ y ∈ s, y ≤ x}
+@[reducible] def lower_closure (s : set α) : set α := {x | ∃ y ∈ s, x ≤ y}
+@[reducible] def upper_closure (s : set α) : set α := {x | ∃ y ∈ s, y ≤ x}
 
-lemma lower_set_of_preimage_invo [has_involution α] (s : set α) : 
-  lower_set_of (invo ⁻¹' s) = invo ⁻¹' (upper_set_of s) := 
+lemma lower_closure_preimage_invo [has_involution α] (s : set α) : 
+  lower_closure (invo ⁻¹' s) = invo ⁻¹' (upper_closure s) := 
 begin
   ext x, simp only [set.mem_set_of_eq, set.mem_preimage, exists_prop],
   exact ⟨λ ⟨y,hy,hxy⟩, ⟨yᵒ, hy, invo_le_iff.mpr hxy⟩,
     λ ⟨y,hy,hxy⟩, ⟨yᵒ, (@invo_invo _ _ _ y).symm ▸ hy, le_invo_comm.mpr hxy⟩⟩, 
 end 
 
-lemma lower_set_of_image_invo [has_involution α] (s : set α) : 
-  lower_set_of (invo '' s) = invo '' (upper_set_of s) := 
-by rw [image_invo_eq_preimage_invo, lower_set_of_preimage_invo, image_invo_eq_preimage_invo]
+lemma lower_closure_image_invo [has_involution α] (s : set α) : 
+  lower_closure (invo '' s) = invo '' (upper_closure s) := 
+by rw [image_invo_eq_preimage_invo, lower_closure_preimage_invo, image_invo_eq_preimage_invo]
 
-lemma upper_set_of_image_invo [has_involution α] (s : set α) : 
-  upper_set_of (invo '' s) = invo '' (lower_set_of s) :=
-by {nth_rewrite 1 ←(@invo_invo_image _ s), rw [lower_set_of_image_invo, invo_invo_image]}
+lemma upper_closure_image_invo [has_involution α] (s : set α) : 
+  upper_closure (invo '' s) = invo '' (lower_closure s) :=
+by {nth_rewrite 1 ←(@invo_invo_image _ s), rw [lower_closure_image_invo, invo_invo_image]}
 
-lemma upper_set_of_preimage_invo [has_involution α] (s : set α): 
-  upper_set_of (invo ⁻¹' s) = invo ⁻¹' (lower_set_of s) :=
-by rw [←image_invo_eq_preimage_invo, ←image_invo_eq_preimage_invo, upper_set_of_image_invo]
+lemma upper_closure_preimage_invo [has_involution α] (s : set α): 
+  upper_closure (invo ⁻¹' s) = invo ⁻¹' (lower_closure s) :=
+by rw [←image_invo_eq_preimage_invo, ←image_invo_eq_preimage_invo, upper_closure_image_invo]
 
 lemma set.Icc_dual''' (x y : α) : @set.Icc αᵒᵈ _ x y = @set.Icc α _ y x := 
   set.dual_Icc 

@@ -34,20 +34,22 @@ universes u v
  
 open set 
 
+variables {α : Type u} 
+
 section prelim
 
-variables {α : Type u} [preorder α] {s : set α}
+variables [preorder α] {s : set α}
 
 def middle (s : set α) : Prop := 
   ∀ x y, x ≤ y → (s ∩ (Ici x)).nonempty → (s ∩ Iic y).nonempty → (s ∩ Icc x y).nonempty  
 
 def max_lower (s : set α) : Prop := 
-  ∀ x y, ((lower_set_of s) ∩ (Icc x y)).nonempty 
-    → (maximals (≤) ((lower_set_of s) ∩ (Icc x y))).nonempty
+  ∀ x y, ((lower_closure s) ∩ (Icc x y)).nonempty 
+    → (maximals (≤) ((lower_closure s) ∩ (Icc x y))).nonempty
 
 def min_upper (s : set α) : Prop := 
-  ∀ x y, ((upper_set_of s) ∩ (Icc x y)).nonempty 
-    → (minimals (≤) ((upper_set_of s) ∩ (Icc x y))).nonempty
+  ∀ x y, ((upper_closure s) ∩ (Icc x y)).nonempty 
+    → (minimals (≤) ((upper_closure s) ∩ (Icc x y))).nonempty
   
 lemma max_lower_dual (hs : min_upper s) : @max_lower αᵒᵈ _ s := λ x y, by {erw [dual_Icc], apply hs}
 
@@ -73,7 +75,7 @@ end prelim
 
 namespace supermatroid 
 
-variables {α : Type u} {i j b b' b'' x y c d r s t : α}
+variables {i j b b' b'' x y c d r s t : α}
 
 section partial_order 
 
@@ -92,17 +94,11 @@ def spanning (M : supermatroid α) (x : α) :=  ∃ b, M.basis b ∧ b ≤ x
 def basis_of (M : supermatroid α) (i x : α) :=
   M.indep i ∧ i ≤ x ∧ ∀ j, M.indep j → j ≤ x → i ≤ j → i = j 
 
-/-- A circuit is a minimal dependent element-/
-def circuit (M : supermatroid α) : α → Prop := minimals (≤) M.indepᶜ 
-
-/-- A cocircuit is a maximally nonspanning element-/
-def cocircuit (M : supermatroid α) : α → Prop := maximals (≤) M.spanningᶜ
-
 lemma basis_middle (hxy : x ≤ y) (hb : M.basis b) (hb' : M.basis b') (hxb : x ≤ b) (hb'y : b' ≤ y): 
   ∃ b₀, M.basis b₀ ∧ x ≤ b₀ ∧ b₀ ≤ y :=
 M.basis_has_middle _ _ hxy ⟨b,hb,hxb⟩ ⟨b',hb',hb'y⟩
 
-@[simp] lemma mem_lower_set_basis_iff_indep : M.indep i ↔ i ∈ lower_set_of M.basis := 
+@[simp] lemma mem_lower_set_basis_iff_indep : M.indep i ↔ i ∈ lower_closure M.basis := 
 ⟨λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩, λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩⟩
 
 lemma indep.indep_of_le (hi : M.indep i) (hji : j ≤ i) : M.indep j := 
@@ -181,13 +177,6 @@ lemma basis.not_basis_of_lt (hb : M.basis b) (hxb : x < b) : ¬ M.basis x :=
 
 lemma indep.basis (hi : M.indep i) (hmax : ∀ j, M.indep j → i ≤ j → i = j) : M.basis i := 
 by {obtain ⟨b,hb, hbi⟩ := hi, have := (hmax b hb.indep hbi), rwa ← this at hb}
-
-lemma circuit.not_indep (hc : M.circuit c) : ¬ M.indep c := hc.1 
-
-lemma circuit.dep (hc : M.circuit c) : M.dep c := hc.1 
-
-lemma circuit.indep_of_lt (hC : M.circuit c) (hiC : i < c) : M.indep i := 
-  by_contra (λ h, (hiC.ne.symm) (hC.2 h hiC.le))
 
 lemma indep.increment (hi : M.indep i) (hi_nb : ¬M.basis i) (his : i ≤ s) (hs : M.spanning s):
   ∃ j, i < j ∧ j ≤ s ∧ M.indep j := 
@@ -375,11 +364,11 @@ def dual [has_involution α] (M : supermatroid α) : supermatroid α :=
   basis_has_max_lower := 
   begin
     intros x y h, 
-    simp only [←image_invo_eq_preimage_invo, lower_set_of_image_invo,image_inter_nonempty_iff, 
+    simp only [←image_invo_eq_preimage_invo, lower_closure_image_invo,image_inter_nonempty_iff, 
       preimage_Icc] at h, 
     
     obtain ⟨a,⟨h₁,h₂⟩,h₃⟩ := M.basis_has_min_upper yᵒ xᵒ h, 
-    rw [lower_set_of_preimage_invo], 
+    rw [lower_closure_preimage_invo], 
     refine ⟨aᵒ, ⟨by rwa [mem_preimage, invo_invo],by rwa [←mem_image_invo, image_Icc]⟩,_⟩,
     rintros p ⟨hp1,hp2⟩ hap, 
     rw [←invo_invo p, ←mem_image_invo, image_Icc] at hp2, 
@@ -399,7 +388,7 @@ variables [lattice α] [is_modular_lattice α] {M : supermatroid α}
 /-- A super of `x` is a minimal element subject to being spanning and above `x`-/
 def super_of (M : supermatroid α) (s x : α) := @basis_of αᵒᵈ _ Mᵈ s x
 
-@[simp] lemma mem_upper_set_basis_iff_spanning : M.spanning s ↔ s ∈ upper_set_of M.basis := 
+@[simp] lemma mem_upper_set_basis_iff_spanning : M.spanning s ↔ s ∈ upper_closure M.basis := 
 ⟨λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩, λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩⟩
 
 lemma super_of_iff : 
@@ -486,52 +475,5 @@ lemma basis.sup_super_of (hb : M.basis b) (x : α) :
 @basis.inf_basis_of αᵒᵈ _ _ Mᵈ hb x
 
 end spanning 
-
-
-section circuit
-
-variables [complete_lattice α] [is_atomistic α] [is_coatomistic α] {M : supermatroid α}
-
-lemma dep.exists_circuit_le (hx : M.dep x) : ∃ c, M.circuit c ∧ c ≤ x := 
-begin
-  obtain ⟨i,hi⟩ := M.exists_basis_of x, 
-  
-  obtain ⟨z, hzx, hzi, hzx⟩ := exists_atom_of_not_le (λ h, hx (hi.indep_of_le h)),
-  
-
-
-  set ps := {p | is_coatom p ∧ M.dep (p ⊓ (i ⊔ z))} with hps, 
-  refine ⟨Inf ps, ⟨λ hpi, _ ,sorry⟩, le_of_le_forall_coatom (λ q hq hxq, _)⟩, 
-  { },
-  convert Inf_le _, 
-  simp only [mem_set_of_eq, hps], 
-  refine ⟨hq, hi.not_indep_of_lt 
-    (lt_of_le_of_ne (le_inf (hi.le.trans hxq) le_sup_left) 
-      (λ h, hzx (by {rw h, simp [hzi.trans hxq]}))) 
-    (inf_le_of_right_le (sup_le hi.le hzi))⟩,  
-  
-  
-  
-
-
-
-
-  
-
-
-  --set sc := {x ∈ si | M.indep (Sup ((si.insert z) \ {x}))}.insert z with hsc,
-  
-  --have hciz : Sup sc ≤ Sup (si.insert z) := Sup_le_Sup (insert_subset_insert (sep_subset _ _)),  
-  
-  -- refine ⟨Sup sc, ⟨λ (hci : M.indep (Sup sc)),_,_⟩,_⟩,  
-  -- { obtain ⟨j,hj,hcj⟩ := hci.le_basis_of hciz, },
-  
-  
-  
-  
-end 
-
-
-end circuit
 
 end supermatroid 

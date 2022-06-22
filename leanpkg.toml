@@ -1,8 +1,8 @@
 [package]
 name = "imatroids"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.42.1"
+lean_version = "leanprover-community/lean:3.43.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "d490ad10765847cf921ab31eadb5aa4e9b55cb92"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "273986addceffb690ee697b9738a9e5231ecd64c"}

@@ -160,7 +160,7 @@ section dual
 
 lemma cobases_eq_image_compl_bases (M : matroid E) : 
   M.cobasis = compl '' M.basis := 
-by {convert (M.basis_antichain.image_compl.max_lower_set_of), simpa [supermatroid.cobasis]}
+by {convert (M.basis_antichain.image_compl.max_lower_closure), simpa [supermatroid.cobasis]}
 
 lemma coindep_iff (M : matroid E) : 
    M.coindep X ↔ ∃ B, (M.basis B ∧ X ⊆ Bᶜ) := iff.rfl 

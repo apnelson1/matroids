@@ -28,7 +28,7 @@ def supermatroid_of_bases {B : set α}
   ind_augment   := 
   begin
     rintros i ⟨b,⟨hb,hib⟩⟩ b' hi hb', 
-    erw h_antichain.max_lower_set_of at hi hb', 
+    erw h_antichain.max_lower_closure at hi hb', 
     obtain ⟨b₀, ⟨hb₀, hib₀, hb₀b⟩⟩ :=  
       h_mid i (i ⊔ b') b b' le_sup_left hib le_sup_right hb hb', 
     exact ⟨b₀,⟨lt_of_le_of_ne hib₀ (λ h, hi (h.symm ▸ hb₀)),hb₀b⟩,b₀,hb₀,rfl.le⟩, 
