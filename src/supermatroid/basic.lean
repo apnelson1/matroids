@@ -362,15 +362,15 @@ open has_involution
 def dual [has_involution α] (M : supermatroid α) : supermatroid α := 
 { basis := invo ⁻¹' M.basis, 
   exists_basis := exists.elim M.exists_basis 
-    (λ b hb, ⟨bᵒ, by rwa [mem_preimage_invo', invo_invo]⟩),
-  basis_antichain := preimage_antichain M.basis_antichain, 
+    (λ b hb, ⟨bⁱ, by rwa [mem_preimage_invo', invo_invo]⟩),
+  basis_antichain := M.basis_antichain.preimage_invo, 
   basis_has_middle := 
   begin
     intros x y hxy, 
     
     simp only [←image_invo_eq_preimage_invo, image_inter_nonempty_iff, preimage_Ici, 
       preimage_Iic, preimage_Icc], 
-    exact flip (M.basis_has_middle yᵒ xᵒ (invo_le_iff.mpr hxy)), 
+    exact flip (M.basis_has_middle yⁱ xⁱ (invo_le_iff.mpr hxy)), 
   end, 
   basis_has_max_lower := 
   begin
@@ -378,9 +378,9 @@ def dual [has_involution α] (M : supermatroid α) : supermatroid α :=
     simp only [←image_invo_eq_preimage_invo, lower_set_of_image_invo,image_inter_nonempty_iff, 
       preimage_Icc] at h, 
     
-    obtain ⟨a,⟨h₁,h₂⟩,h₃⟩ := M.basis_has_min_upper yᵒ xᵒ h, 
+    obtain ⟨a,⟨h₁,h₂⟩,h₃⟩ := M.basis_has_min_upper yⁱ xⁱ h, 
     rw [lower_set_of_preimage_invo], 
-    refine ⟨aᵒ, ⟨by rwa [mem_preimage, invo_invo],by rwa [←mem_image_invo, image_Icc]⟩,_⟩,
+    refine ⟨aⁱ, ⟨by rwa [mem_preimage, invo_invo],by rwa [←mem_image_invo, image_Icc]⟩,_⟩,
     rintros p ⟨hp1,hp2⟩ hap, 
     rw [←invo_invo p, ←mem_image_invo, image_Icc] at hp2, 
     rw [(h₃ ⟨hp1,hp2⟩ (invo_le_comm.mp hap)), invo_invo], 
@@ -389,7 +389,7 @@ def dual [has_involution α] (M : supermatroid α) : supermatroid α :=
 }
 
 
-
+ 
 end dual 
 
 section spanning
