@@ -1,5 +1,7 @@
 import order.atoms
 import .weak_compl
+import data.finite.basic 
+
 
 universe u
 
@@ -182,38 +184,45 @@ lemma exists_inf_coatom_of_sup_atom_of_ne_top [is_modular_lattice α] {x a : α}
   ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b := 
 @exists_sup_atom_of_inf_coatom_of_ne_bot αᵒᵈ _ _ _ _ _ hx ha
 
+end coatoms 
 
+section finite
 
--- lemma foo [is_atomistic α] [is_modular_lattice α] (ha : is_atom a) (hx : x ≠ ⊤) : 
---   ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b :=
--- begin
---   -- obtain ⟨c,hc⟩ : sx.nonempty := 
---   --   set.ne_empty_iff_nonempty.mp (by {rintro rfl, rw Inf_empty at hx, exact hx rfl}),
---   by_cases hax : a ≤ x, 
---   { obtain ⟨b, hb, hxb⟩ := le_coatom_of_ne_top hx, 
---     exact ⟨b,hb, by {rw [sup_eq_left.mpr hax, inf_eq_left.mpr hxb]}⟩},
---   obtain ⟨b,hb,hxb,hab⟩ := exists_coatom_of_not_le hax, 
---   refine ⟨b,hb,_⟩, 
---   obtain ⟨hb1 | hb1, ha1 | ha1⟩ := 
---     ⟨ wcovby_iff_covby_or_eq.mp (inf_coatom_wcovby (x ⊔ a) hb),
---       wcovby_iff_covby_or_eq.mp (sup_atom_wcovby x ha)⟩, 
---   { refine le_antisymm (le_inf le_sup_left hxb) _, },
---   --exact ⟨c, hsx _ hc, by {rw [sup_eq_left.mpr ha, eq_comm, inf_eq_left], exact Inf_le hc}⟩,  
--- end 
+variables [finite α] 
 
--- lemma foo [is_atomistic α] (ha : is_atom a) (hx : x ≠ ⊤) : ∃ b, is_coatom b ∧ x = (x ⊔ a) ⊓ b :=
--- begin
---   obtain ⟨sx, rfl, hsx⟩ := eq_Inf_coatoms x, 
---   obtain ⟨c,hc⟩ : sx.nonempty := 
---     set.ne_empty_iff_nonempty.mp (by {rintro rfl, rw Inf_empty at hx, exact hx rfl}),
---   by_cases ha : a ≤ Inf sx, 
---   exact ⟨c, hsx _ hc, by {rw [sup_eq_left.mpr ha, eq_comm, inf_eq_left], exact Inf_le hc}⟩,
---   obtain ⟨b,hb,hxb,hbxa⟩ := exists_coatom_of_not_le (sorry : ¬ (Inf sx ⊔ a ≤ Inf sx))  , 
---   refine ⟨b,hb,le_antisymm (le_inf le_sup_left hxb) _⟩, 
---   rw le_iff_le_forall_coatom, 
---   intros a' ha' hxa', 
+instance : finite αᵒᵈ := (infer_instance : finite α)
 
-
+lemma finite.exists_maximal' [nonempty α] [preorder α] : ∃ x : α, ∀ y, ¬ (x < y) :=
+begin
+  haveI := fintype.of_finite α, 
+  exact (finset.univ.exists_maximal finset.univ_nonempty).imp 
+    (λ a h y hay, (exists.elim h (λ _ h', h' _ (finset.mem_univ _) hay))), 
 end 
 
-end coatoms 
+lemma finite.exists_minimal' [nonempty α] [preorder α] : ∃ x : α, ∀ y, ¬ (y < x) :=
+@finite.exists_maximal' αᵒᵈ _ _ _ 
+
+lemma set.finite.exists_maximal_mem' [preorder α] {s : set α} (hs : s.nonempty) : 
+  ∃ x ∈ s, ∀ y, y ∈ s → ¬ (x < y) := 
+begin
+  obtain ⟨⟨x,hx⟩,h⟩ :=  @finite.exists_maximal' s _ hs.to_subtype _, 
+  exact ⟨x,hx,λ y hy, λ hlt, h ⟨y,hy⟩ (subtype.mk_lt_mk.mpr hlt)⟩,
+end 
+
+lemma set.finite.exists_minimal_mem' [preorder α] {s : set α} (hs : s.nonempty) : 
+  ∃ x ∈ s, ∀ y, y ∈ s → ¬ (y < x) := 
+@set.finite.exists_maximal_mem' αᵒᵈ _ _ _ hs
+
+lemma set.finite.exists_maximal_mem [partial_order α] {s : set α} (hs : s.nonempty) : 
+  ∃ x ∈ s, ∀ y, y ∈ s → x ≤ y → x = y := 
+(set.finite.exists_maximal_mem' hs).imp 
+  (λ x h, h.imp (λ hxs hx y hys hxy, eq_of_le_of_not_lt hxy (hx _ hys)))
+
+lemma set.finite.exists_minimal_mem [partial_order α] {s : set α} (hs : s.nonempty) : 
+  ∃ x ∈ s, ∀ y, y ∈ s → y ≤ x → y = x := 
+(set.finite.exists_minimal_mem' hs).imp 
+  (λ x h, h.imp (λ hxs hx y hys hxy, eq_of_le_of_not_lt hxy (hx _ hys)))
+
+
+end finite 
+
