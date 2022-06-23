@@ -3,6 +3,7 @@ import order.minimal
 import order.upper_lower 
 import order.modular_lattice 
 import data.finite.basic
+import order.atoms
 
 universes u v 
 
@@ -13,7 +14,7 @@ open set order_dual
 section basis_family 
 
 /-- A `basis_family` is a nonempty antichain -/
-class basis_family (α : Type u) extends lattice α := 
+class basis_family (α : Type u) extends complete_lattice α := 
 (carrier : set α)
 (nonempty : carrier.nonempty)
 (is_antichain : is_antichain (≤) carrier)
@@ -51,6 +52,14 @@ def circuit (x : α) := x ∈ minimals (≤) (indep : set α)ᶜ
 /-- A hyperplane is a maximally nonspanning element-/
 def hyperplane (x : α) := x ∈ maximals (≤) (spanning : set α)ᶜ
 
+/-- `x` spans `y` if some basis for `y` is below `x` -/
+def spans (x y : α) := ∃ i, basis_for i y ∧ i ≤ x
+
+/-- `x` controls `y` if `y` is below some super for `x` -/
+def controls (x y : α) := ∃ s, super_for s x ∧ y ≤ s
+
+def rk_zero (x : α) := ∀ b, basis b → b ⊓ x = ⊥ 
+
 lemma indep.not_dep (hi : indep i) : ¬ dep i := by rwa [not_not]
 
 lemma dep.not_indep (hx : dep x) : ¬ indep x := hx 
@@ -81,6 +90,12 @@ lemma exists_indep : ∃ (i : α), indep i := (exists_basis α).imp (λ b hb, �
 lemma basis_for.indep (h : basis_for b x) : indep b := h.1
 
 lemma basis_for.le (h : basis_for b x) : b ≤ x := h.2.1
+
+@[simp] lemma mem_upper_set_basis_iff_spanning : s ∈ upper_closure (basis : set α) ↔ spanning s := 
+⟨λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩, λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩⟩
+
+lemma super_for_iff : 
+  super_for s x ↔ spanning s ∧ x ≤ s ∧ ∀ s', spanning s' → x ≤ s' → s' ≤ s → s = s' := iff.rfl 
 
 /-! #### Monotonicity  -/
 
@@ -113,7 +128,7 @@ hi.indep_of_le inf_le_right
 lemma indep.inf_right_indep (hi : indep i) (x : α) : indep (i ⊓ x) := 
 hi.indep_of_le inf_le_left
 
-lemma bot_indep (α : Type u) [basis_family α] [order_bot α]: indep (⊥ : α) := 
+lemma bot_indep (α : Type u) [basis_family α] : indep (⊥ : α) := 
 exists.elim (exists_basis α) (λ b h, ⟨b, h, bot_le⟩)
 
 lemma dep.dep_of_lt (hx : dep x) (hxy : x ≤ y) : dep y := 
@@ -127,7 +142,7 @@ hb.indep.indep_of_le inf_le_right
 lemma basis.inf_right_indep (hb : basis b) (x : α) : indep (b ⊓ x) := 
 hb.indep.indep_of_le inf_le_left
 
-lemma top_spanning (α : Type u) [basis_family α] [order_top α] : spanning (⊤ : α) := 
+lemma top_spanning (α : Type u) [basis_family α] : spanning (⊤ : α) := 
 exists.elim (exists_basis α) (λ b hb, ⟨b,hb,le_top⟩)
 
 /-! #### Extremality -/
@@ -193,13 +208,13 @@ lemma circuit.not_indep (hc : circuit c) : ¬ indep c := hc.1
 
 lemma circuit.dep (hc : circuit c) : dep c := hc.1 
 
-lemma circuit.eq_of_le_dep (hc : circuit c) (hd : dep d) (hdc : d ≤ c) : d = c := (hc.2 hd hdc).symm
+lemma circuit.eq_of_dep_le (hc : circuit c) (hd : dep d) (hdc : d ≤ c) : d = c := (hc.2 hd hdc).symm
 
 lemma circuit.indep_of_lt (hc : circuit c) (hic : i < c) : indep i := 
-by_contra (λ h, hic.ne (hc.eq_of_le_dep h hic.le))
+by_contra (λ h, hic.ne (hc.eq_of_dep_le h hic.le))
   
 lemma circuit_antichain : is_antichain (≤) (circuit : set α) := 
-λ _ h _ h' hne hle, hne (h'.eq_of_le_dep h.dep hle)
+λ _ h _ h' hne hle, hne (h'.eq_of_dep_le h.dep hle)
    
 lemma hyperplane.not_spanning (hf : hyperplane f) : ¬ spanning f := hf.1 
 
@@ -354,12 +369,6 @@ instance : supermatroid_family αᵒᵈ :=
 
 /-- #### Spanning sets -/
 
-@[simp] lemma mem_upper_set_basis_iff_spanning : s ∈ upper_closure (basis : set α) ↔ spanning s := 
-⟨λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩, λ ⟨b,hb,hbx⟩, ⟨b,hb,hbx⟩⟩
-
-lemma super_for_iff : 
-  super_for s x ↔ spanning s ∧ x ≤ s ∧ ∀ s', spanning s' → x ≤ s' → s' ≤ s → s = s' := iff.rfl 
- 
 lemma spanning.basis_lt_indep_le_of_not_basis (hs : spanning s) (hs_nb : ¬basis s) (hi : indep i) 
 (his : i ≤ s) : 
   ∃ b, basis b ∧ b < s ∧ i ≤ b := 
@@ -387,5 +396,18 @@ lemma basis.basis_lt_inf_le_basis_of_lt (hb : basis b) (hb' : basis b') (hbs : b
 lemma basis.sup_super_for (hb : basis b) (x : α) :
   ∃ b',basis b' ∧ super_for (b' ⊔ x) x ∧ x ⊓ b ≤ b'  :=
 @basis.inf_basis_for αᵒᵈ _ _ hb x
+
+section atoms
+
+variables [is_atomistic α] [is_coatomistic α]
+
+lemma foo (h : ∀ {x y i : α}, basis_for i x → basis_for i y → basis_for i (x ⊔ y)) :
+(∀ {x y s : α}, super_for s x → super_for s x → super_for s (x ⊓ y)) :=
+
+begin
+
+end 
+
+end atoms
 
 end supermatroid_family
