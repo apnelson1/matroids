@@ -25,7 +25,7 @@ carrier := of_dual ⁻¹' basis_family.carrier,
 nonempty := basis_family.nonempty,
 is_antichain := basis_family.is_antichain.to_dual }
 
-variables [basis_family α] {x y i j a b b' c s t f d : α}
+variables [basis_family α] {x y z x' y' z'  i j a b b' c s t f d : α}
 
 /-! #### Definitions / Existence -/ 
   
@@ -53,12 +53,13 @@ def circuit (x : α) := x ∈ minimals (≤) (indep : set α)ᶜ
 def hyperplane (x : α) := x ∈ maximals (≤) (spanning : set α)ᶜ
 
 /-- `x` spans `y` if some basis for `y` is below `x` -/
-def spans (x y : α) := ∃ i, basis_for i y ∧ i ≤ x
+def spans (x y : α) := ∃ i, basis_for i (x ⊔ y) ∧ i ≤ x
 
 /-- `x` controls `y` if `y` is below some super for `x` -/
-def controls (x y : α) := ∃ s, super_for s x ∧ y ≤ s
+def controls (x y : α) := ∃ s, super_for s (x ⊔ y) ∧ y ≤ s
 
-def rk_zero (x : α) := ∀ b, basis b → b ⊓ x = ⊥ 
+/-- `x` is loopy if it is disjoint from every basis -/
+def loopy (x : α) := ∀ b, basis b → b ⊓ x = ⊥ 
 
 lemma indep.not_dep (hi : indep i) : ¬ dep i := by rwa [not_not]
 
@@ -158,8 +159,14 @@ hbi.antisymm (exists.elim hi (λ b' ⟨hb',hib'⟩,(hb.eq_of_le_basis hb' (hbi.t
 lemma basis.eq_of_spanning_le (hb : basis b) (hs : spanning s) (hsb : s ≤ b) : s = b :=
 hsb.antisymm (exists.elim hs (λ b' ⟨hb',hb's⟩, (hb'.eq_of_le_basis hb (hb's.trans hsb)).subst hb's))
 
-lemma basis.not_indep_of_lt (hb : basis b) (hbx : b < x) : ¬ indep x := 
+lemma basis.lt_not_indep (hb : basis b) (hbx : b < x) : ¬ indep x := 
 λ hx, hbx.ne (hb.eq_of_le_indep hx hbx.le)
+
+lemma basis.lt_not_basis (hb : basis b) (hbx : b < x) : ¬ basis x := 
+λ h, (hb.lt_not_indep hbx) h.indep 
+
+lemma basis.not_basis_of_lt (hb : basis b) (hxb : x < b) : ¬ basis x := 
+λ hx, (hx.lt_not_basis hxb) hb  
 
 lemma spanning.eq_of_le_basis (hs : spanning s) (hb : basis b) (hsb : s ≤ b) : s = b :=
 hb.eq_of_spanning_le hs hsb 
@@ -192,12 +199,9 @@ lemma basis_for.not_indep_of_lt (hb : basis_for b x) (hby : b < y) (hyx : y ≤ 
 lemma basis_for.indep_of_le (hb : basis_for b x) (hib : i ≤ b)  : indep i := 
 (hb.indep).indep_of_le hib 
 
-lemma basis.basis_for_top [order_top α] (hb : basis b) : basis_for b ⊤ := 
+lemma basis.basis_for_top (hb : basis b) : basis_for b ⊤ := 
 hb.indep.basis_for le_top (λ j hj hbj h, hb.eq_of_le_indep hj h) 
     
-lemma basis.lt_not_basis (hb : basis b) (hbx : b < x) : ¬ basis x := 
-λ hx, (hb.not_indep_of_lt hbx hx.indep)
-
 lemma basis.not_basis_for_lt (hb : basis b) (hxb : x < b) : ¬ basis x := 
 λ h, (h.lt_not_basis hxb) hb 
 
@@ -265,7 +269,7 @@ class supermatroid_family (α : Type u) extends basis_family α, is_modular_latt
   ∀ (x y : α), indep x → spanning y → x ≤ y → ∃ b, basis b ∧ x ≤ b ∧ b ≤ y) 
 (le_basis_for_of_indep_le : ∀ (i x : α), indep i → i ≤ x → ∃ j, basis_for j x ∧ i ≤ j)
   
-variables [supermatroid_family α] {i b b' s x y : α}
+variables [supermatroid_family α] {a i b b' s x y z x' y' z' : α}
 
 /-- A basis_family on a finite lattice that satisfies the middle axiom is a supermatroid family -/
 noncomputable lemma supermatroid_family_of_finite {α : Type u} [basis_family α] [finite α] 
@@ -303,6 +307,12 @@ exists.elim (hi.exists_basis_between_of_le_spanning hs rfl.le)
 lemma indep.le_basis_for_of_le (hi : indep i) (hix : i ≤ x) : ∃ j, basis_for j x ∧ i ≤ j := 
 supermatroid_family.le_basis_for_of_indep_le _ _ hi hix  
 
+lemma indep.le_basis_for_sup_right (hi : indep i) (x : α) : ∃ j, basis_for j (i ⊔ x) ∧ i ≤ j := 
+hi.le_basis_for_of_le le_sup_left 
+
+lemma indep.le_basis_for_sup_left (hi : indep i) (x : α) : ∃ j, basis_for j (x ⊔ i) ∧ i ≤ j := 
+hi.le_basis_for_of_le le_sup_right 
+
 lemma basis_for.basis (hb : basis_for b s) (hs : spanning s) : basis b := 
 exists.elim (hb.indep.exists_basis_between_of_le_spanning hs hb.le) 
   (λ b' ⟨hb',hbb',hb's⟩, (hb.eq_of_le_indep hb'.indep hbb' hb's).substr hb') 
@@ -327,9 +337,17 @@ begin
   rwa ←hi.eq_of_le_indep hj (le_trans (le_inf bib' hi.le) hb'j) hjx,  
 end 
 
+lemma basis.lt_basis_le_spanning_of_lt (hb : basis b) (hs : spanning s) (hib : i < b) 
+(his : i ≤ s) :
+  ∃ b₀, basis b₀ ∧ i < b₀ ∧ b₀ ≤ s := 
+(hb.indep_of_le hib.le).lt_basis_le_spanning_of_not_basis (hb.not_basis_of_lt hib) hs his 
+
 lemma basis.lt_basis_le_sup_basis_of_lt (hb : basis b) (hb' : basis b') (hib : i < b) :
   ∃ b₀, basis b₀ ∧ i < b₀ ∧ b₀ ≤ i ⊔ b' :=
 (hb.indep_of_le hib.le).lt_basis_sup_le_sup_basis_of_not_basis (hb.not_basis_for_lt hib) hb' 
+
+
+ 
 
 /-- #### Duality -/
 
@@ -397,16 +415,225 @@ lemma basis.sup_super_for (hb : basis b) (x : α) :
   ∃ b',basis b' ∧ super_for (b' ⊔ x) x ∧ x ⊓ b ≤ b'  :=
 @basis.inf_basis_for αᵒᵈ _ _ hb x
 
-section atoms
+lemma basis_for.eq_inf_basis_of_le_basis (hix : basis_for i x) (hb : basis b) (hib : i ≤ b) : 
+  i = x ⊓ b := 
+hix.eq_of_le_indep (hb.inf_left_indep x) (le_inf hix.le hib) inf_le_left 
 
-variables [is_atomistic α] [is_coatomistic α]
+lemma basis_for.exists_basis (hi : basis_for i x) : 
+  ∃ b, basis b ∧ i = x ⊓ b ∧ ∀ b', basis b' → x ⊓ b ≤ b' → x ⊓ b' = x ⊓ b := 
+begin
+  obtain ⟨b, hb, hib⟩ := hi.indep, 
+  have := hi.eq_inf_basis_of_le_basis hb hib, subst this, 
+  exact ⟨_,hb, rfl, λ b' hb' hxb', 
+    (hi.eq_of_le_indep (hb'.inf_left_indep x) (le_inf inf_le_left hxb') inf_le_left).symm⟩, 
+end 
 
-lemma foo (h : ∀ {x y i : α}, basis_for i x → basis_for i y → basis_for i (x ⊔ y)) :
-(∀ {x y s : α}, super_for s x → super_for s x → super_for s (x ⊓ y)) :=
+lemma basis_for.eq_inf_basis_both (hix : basis_for i x) (hiy : basis_for i y) : 
+  ∃ b, basis b ∧ i = x ⊓ b ∧ i = y ⊓ b :=
+hix.indep.imp (λ b hb, ⟨hb.1, hix.eq_inf_basis_of_le_basis hb.1 hb.2, 
+    hiy.eq_inf_basis_of_le_basis hb.1 hb.2⟩)
 
+lemma eq_inf_basis_forall_of_basis_for_forall {S : set α} (hS : ∀ x ∈ S, basis_for i x) :
+  ∃ b, basis b ∧ ∀ x ∈ S, i = x ⊓ b :=
+S.eq_empty_or_nonempty.elim (by {rintro rfl, exact (exists_basis α).imp (by simp)})
+  (by {rintro ⟨y,hy⟩, refine (hS y hy).indep.imp 
+    (λ b hb, ⟨hb.1, λ x hx, (hS x hx).eq_inf_basis_of_le_basis hb.1 hb.2⟩)})
+
+lemma eq_sup_basis_forall_of_super_for_forall {S : set α} (hS : ∀ x ∈ S, super_for s x) : 
+  ∃ b, basis b ∧ ∀ x ∈ S, s = x ⊔ b :=
+@eq_inf_basis_forall_of_basis_for_forall αᵒᵈ _ _ S hS
+
+lemma super_for.eq_sup_basis_both (hsx : super_for s x) (hsy : super_for s y) : 
+  ∃ b, basis b ∧ s = x ⊔ b ∧ s = y ⊔ b := 
+@basis_for.eq_inf_basis_both αᵒᵈ _ _ _ _ hsx hsy 
+
+lemma basis_for.basis_for_of_le (hix : basis_for i x) (hiy : i ≤ y) (hyx : y ≤ x) : basis_for i y :=
+hix.indep.basis_for hiy (λ j hj hjy hij, hix.eq_of_le_indep hj hij (hjy.trans hyx))  
+
+example (hb : basis b) (hxx' : x ≤ x')
+  (hbx  : basis_for (b ⊓ x) (x ⊔ y))
+  (hbx' : basis_for (b ⊓ x') x')
+  (hbxy : basis_for (b ⊓ (x' ⊔ y)) (x' ⊔ y))
+  (hlt  : b ⊓ x' < b ⊓ (x' ⊔ y))
+  : false := 
+begin
+  have : (b ⊓ (x' ⊔ y)) ⊔ (x ⊔ y) ≤ (b ⊓ x') ⊔ (x ⊔ y),
+  begin
+    simp, split, 
+    { sorry},
+    split,
+    apply le_sup_of_le_right, simp, 
+    apply le_sup_of_le_right, simp, 
+
+  end ,
+end 
+
+-- lemma spans_iff_forall : spans x y ↔ ∀ i, basis_for i x → basis_for i (x ⊔ y) :=
+-- begin
+--   refine ⟨λ h, λ i hi, _, λ h, (exists_basis_for x).imp (λ i hi, ⟨h _ hi, hi.le⟩)⟩, 
+--   obtain ⟨j, hj, hjx⟩ := h, 
+--   obtain ⟨i', hi', hii'⟩ := hi.indep.le_basis_for_of_le (hi.le.trans (le_sup_left : x ≤ x ⊔ y)), 
+--   have := hj.eq_of_le_indep hi'.indep, 
+--   --have := hi.eq_of_le_indep hj.indep, 
+
+
+  
+-- end  
+
+lemma spans.mono_left (hxy : spans x y) (hx : x ≤ x') : spans x' y := 
+begin
+  
+  obtain ⟨i, hi, hib⟩ := hxy, 
+  obtain ⟨j, hj, hij⟩ := hi.indep.le_basis_for_of_le (sorry : i ≤ x'),
+  obtain ⟨j₁, hj₁, hjj₁⟩ := hj.indep.le_basis_for_of_le (hj.le.trans le_sup_left : j ≤ x' ⊔ y), 
+  refine ⟨j₁, hj₁, _⟩, 
+  
+  have := hi.eq_of_le_indep (hj₁.indep.inf_right_indep (x ⊔ y)) sorry sorry, 
+  subst this, 
+  have := hj.eq_of_le_indep (hj₁.indep.inf_right_indep x') sorry sorry, 
+  subst this, 
+  
+  -- simp at hij,  clear hjj₁, 
+  -- have := hj.eq_of_le_indep
+   
+  -- refine ⟨j, hj.indep.basis_for sorry (λ j' hj' hj'xy hjj', _) , hj.le⟩, 
+  
+  -- have hjwhat : j = j' ⊓ (j ⊔ x), 
+  -- { rw [inf_comm, sup_inf_assoc_of_le _ hjj',
+  --   ←hi.eq_of_le_indep (hj'.inf_left_indep x) (le_inf hib (hij.trans hjj')) sorry,
+  --   sup_eq_left.mpr hij]}, 
+  -- rw [hjwhat, inf_eq_left ,
+  --   hj.eq_of_le_indep (hj'.inf_right_indep x') sorry sorry, inf_comm, inf_sup_assoc_of_le _ hx, 
+  --   le_inf_iff, ←inf_eq_left],
+  -- refine ⟨_, le_sup_left⟩, 
+
+  -- have := h
+
+  
+   
+
+
+  -- refine (@eq_of_le_of_inf_le_of_sup_le' _ _ _ _ _ x hjj' _ _), 
+  -- rwa ←hi.eq_of_le_indep (hj'.inf_right_indep x) (le_inf (hij.trans hjj') hib) 
+  --   (inf_le_of_right_le le_sup_left), 
+
+  -- refine hjj'.lt_or_eq.elim (λ hlt, _) (by {rintro rfl, exact le_sup_left}), 
+  -- have := @inf_lt_inf_of_lt_of_sup_le_sup _ _ _ _ _ x hlt (sup_le _ le_sup_right), 
+  
+  --have := hj.eq_of_le_indep (hj'.inf_right_indep (j ⊔ x)), 
+
+  
+  -- refine hxy.imp (λ i hi, ⟨hi.1.indep.basis_for 
+  --   ((hi.2.trans hx).trans le_sup_left) (λ j hj hjx hij, _), hi.2.trans hx⟩), 
+  -- refine hi.1.eq_of_le_indep hj hij _, 
+  
+end
+
+lemma spans.mono (hxy : spans x y) (hx : x ≤ x') (hy : y' ≤ y) : spans x' y' := 
+begin
+  obtain ⟨i, hi, hib⟩ := hxy, 
+  obtain ⟨j, hj, hij⟩ := hi.indep.le_basis_for_of_le (sorry : i ≤ x'), 
+  refine ⟨j, hj.indep.basis_for sorry (λ j' hj' hj'_le hjj', _) , hj.le⟩, 
+  
+  -- refine hxy.imp (λ i hi, ⟨hi.1.indep.basis_for (hi.2.trans (hx.trans le_sup_left)) 
+  --   (λ j hj hjx' hij, hi.1.eq_of_le_indep hj hij _), 
+  --   hi.2.trans hx⟩), 
+  
+  
+  
+end 
+
+lemma foo (hxy : x ≤ y) (hi : i ≤ x) (hiy : basis_for i y) (hs : y ≤ s) (hsx : super_for s x) : 
+false :=
 begin
 
 end 
+
+
+lemma not_span (hxy : x ≤ y) (hs : ¬spans x y) : ∃ s, super_for s y ∧ ¬super_for s x := 
+begin
+  refine by_contra (λ h, hs _), 
+  unfold super_for at h, 
+  push_neg at h, 
+  refine (exists_basis_for x).imp (λ i hix, ⟨hix.indep.basis_for (hix.le.trans hxy) _,hix.le⟩), 
+  intros j hj hjy hij, 
+  obtain ⟨b, hb, ⟨rfl,hb_max⟩⟩ := hix.exists_basis, 
+  
+  obtain ⟨b', hb', hb'y, hb'b⟩ := hb.sup_super_for y, 
+  have hb'x := h _ hb'y, 
+  set k := (b' ⊔ y) ⊓ b with hk, 
+  have hklt : k < b := sorry, 
+  obtain ⟨b'', hb'', h_b'',hb''_⟩ := hb.lt_basis_le_spanning_of_lt (hb'.sup_right_spanning y) 
+    hklt inf_le_left, 
+
+  have hb''_x := hb'x.eq_of_spanning_le le_sup_right 
+    (sup_le hb''_ (le_sup_of_le_right hxy)) 
+    (hb''.sup_right_spanning _), 
+
+  have hfoo := 
+    hb'x.eq_of_spanning_le (le_sup_right) (sup_le_sup_left hxy b') (hb'.sup_right_spanning _),
+
+  have hmod := @inf_lt_inf_of_lt_of_sup_le_sup _ _ _ _ _ x h_b'' (sup_le _ le_sup_right), 
+  swap, 
+  { rw [hk, inf_sup_assoc_of_le, le_inf_iff, ←hb''_x], swap, exact le_sup_of_le_right hxy, 
+    refine ⟨le_sup_left, _⟩, },
+  
+
+  
+  --obtain ⟨b'',hb'',h_b'',hb''_⟩ := 
+  -- (hb.inf_left_indep (b' ⊔ y)).exists_basis_between_of_le_spanning 
+  --   (hb'.sup_right_spanning y) inf_le_left, 
+
+  
+  
+  --have := hb_max b' hb', 
+  --refine hij.antisymm (le_inf _ _), 
+  
+  --obtain ⟨s, hs⟩ := 
+  
+end 
+
+
+section atoms
+
+def basis_for_sup_of_basis_for_basis_for : Prop := 
+∀ {x y i : α}, basis_for i x → basis_for i y → basis_for i (x ⊔ y)
+
+variables [is_atomistic α] [is_coatomistic α] 
+
+
+
+lemma foo (hxy : x ≤ y) (h : spans x y) : spans (x ⊔ a) (y ⊔ a) :=
+begin
+  obtain ⟨i,hi,hix⟩ := h, 
+
+  obtain ⟨j,hj,hjx⟩ := hi.indep.le_basis_for_sup_right a, 
+
+  -- obtain ⟨j',hj',hjj'⟩ := hj.indep.le_basis_for_of_le (sorry : j ≤ x ⊔ a), 
+  -- have := hj.eq_of_le_indep hj'.indep hjj' _, swap, 
+  
+  --have : i' ≤ y ⊔ a := by {refine hi'.le.trans _,},
+  --obtain ⟨j,hj,hjy⟩ := hi'.indep.le_basis_for_of_le (sorry : i' ≤ y ⊔ a),
+  
+  -- refine ⟨j, hj.indep.basis_for sorry (λ j' hj' hj'y hjj', _), sorry⟩, 
+  -- refine hj.eq_of_le_indep hj' hjj' _, 
+  
+  --rw hi.eq_of_le_indep (hj'.inf_right_indep y) sorry inf_le_right, 
+end 
+
+
+
+-- lemma foo (h : ∀ {x y i : α}, basis_for i x → basis_for i y → basis_for i (x ⊔ y)) :
+-- (∀ {x y s : α}, super_for s x → super_for s y → super_for s (x ⊓ y)) :=
+
+-- begin
+--   rintros x y s hx hy, 
+--   obtain ⟨b, hb, hbx, hby⟩ := hx.eq_sup_basis_both hy, 
+--   refine ⟨⟨b,hb,hbx.substr le_sup_right⟩,inf_le_of_left_le (hbx.substr le_sup_left),
+--     λ t ht hxyt hts, le_antisymm (hbx.substr _) hts⟩,  
+  
+  
+-- end 
 
 end atoms
 
