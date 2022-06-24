@@ -1,11 +1,12 @@
 import order.atoms
 import .weak_compl
 import data.finite.basic 
+import order.hom.complete_lattice
 
 
-universe u
+universes u v
 
-variables {α : Type u} 
+variables {α : Type u} {β : Type v}
 
 section upper_lower
 
@@ -77,7 +78,6 @@ lemma inf_eq_inf_of_le_of_le (h1 : a ⊓ x ≤ b) (h2 : b ⊓ x ≤ a) : a ⊓ x
 
 lemma sup_eq_sup_of_le_of_le (h1 : a ≤ b ⊔ x) (h2 : b ≤ a ⊔ x) : a ⊔ x = b ⊔ x := 
   (sup_le h1 le_sup_right).antisymm (sup_le h2 le_sup_right)
-
 
 end lattice 
 
@@ -226,3 +226,27 @@ lemma set.finite.exists_minimal_mem [partial_order α] {s : set α} (hs : s.none
 
 end finite 
 
+section complete 
+
+variables [complete_lattice α] [complete_lattice β]
+
+lemma Sup_image_sup_left_eq_sup_Sup_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+  Sup ((λ x, a ⊔ x) '' S) = a ⊔ (Sup S) := 
+let ⟨x,hx⟩ := hS in
+(Sup_le (by {rintro _ ⟨y,hy,rfl⟩, refine sup_le_sup_left (le_Sup hy) _, })).antisymm 
+  (sup_le (le_sup_left.trans (le_Sup ((set.mem_image _ _ _).mpr ⟨x,hx,rfl⟩))) 
+  (Sup_le_Sup_of_forall_exists_le (λ y hy, ⟨a ⊔ y, ⟨⟨y,hy,rfl⟩,le_sup_right⟩⟩)))
+   
+lemma Sup_image_sup_right_eq_Sup_sup_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+  Sup ((λ x, x ⊔ a) '' S) = (Sup S) ⊔ a := 
+by {rw [sup_comm, ←Sup_image_sup_left_eq_sup_Sup_of_nonempty hS], simp_rw [sup_comm]}
+   
+lemma Inf_image_inf_right_eq_Inf_inf_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+  Inf ((λ x, x ⊓ a) '' S) = (Inf S) ⊓ a := 
+@Sup_image_sup_right_eq_Sup_sup_of_nonempty αᵒᵈ _ _ _ hS 
+  
+lemma Inf_image_inf_left_eq_inf_Inf_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+  Inf ((λ x, a ⊓ x) '' S) = a ⊓ (Inf S) := 
+@Sup_image_sup_left_eq_sup_Sup_of_nonempty αᵒᵈ _ _ _ hS 
+
+end complete 
