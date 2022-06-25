@@ -228,25 +228,27 @@ end finite
 
 section complete 
 
-variables [complete_lattice α] [complete_lattice β]
+variables [complete_lattice α] {a : α} {S : set α}
 
-lemma Sup_image_sup_left_eq_sup_Sup_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+lemma Sup_image_sup_left_eq_sup_Sup_of_nonempty (hS : S.nonempty) : 
   Sup ((λ x, a ⊔ x) '' S) = a ⊔ (Sup S) := 
 let ⟨x,hx⟩ := hS in
 (Sup_le (by {rintro _ ⟨y,hy,rfl⟩, refine sup_le_sup_left (le_Sup hy) _, })).antisymm 
   (sup_le (le_sup_left.trans (le_Sup ((set.mem_image _ _ _).mpr ⟨x,hx,rfl⟩))) 
   (Sup_le_Sup_of_forall_exists_le (λ y hy, ⟨a ⊔ y, ⟨⟨y,hy,rfl⟩,le_sup_right⟩⟩)))
-   
-lemma Sup_image_sup_right_eq_Sup_sup_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+
+lemma Sup_image_sup_right_eq_Sup_sup_of_nonempty (hS : S.nonempty) : 
   Sup ((λ x, x ⊔ a) '' S) = (Sup S) ⊔ a := 
 by {rw [sup_comm, ←Sup_image_sup_left_eq_sup_Sup_of_nonempty hS], simp_rw [sup_comm]}
    
-lemma Inf_image_inf_right_eq_Inf_inf_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+lemma Inf_image_inf_right_eq_Inf_inf_of_nonempty (hS : S.nonempty) : 
   Inf ((λ x, x ⊓ a) '' S) = (Inf S) ⊓ a := 
 @Sup_image_sup_right_eq_Sup_sup_of_nonempty αᵒᵈ _ _ _ hS 
   
-lemma Inf_image_inf_left_eq_inf_Inf_of_nonempty {a : α} {S : set α} (hS : S.nonempty) : 
+lemma Inf_image_inf_left_eq_inf_Inf_of_nonempty (hS : S.nonempty) : 
   Inf ((λ x, a ⊓ x) '' S) = a ⊓ (Inf S) := 
 @Sup_image_sup_left_eq_sup_Sup_of_nonempty αᵒᵈ _ _ _ hS 
+
+-- these are already in mathlib : supr_sup etc 
 
 end complete 
