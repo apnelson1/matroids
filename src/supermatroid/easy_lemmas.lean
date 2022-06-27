@@ -1,5 +1,5 @@
 import order.atoms
-import .weak_compl
+
 import data.finite.basic 
 import order.hom.complete_lattice
 
@@ -10,35 +10,34 @@ variables {α : Type u} {β : Type v}
 
 section upper_lower
 
-open has_involution 
 
 variables [preorder α] {x y z a b: α}
 
 @[reducible] def lower_closure (s : set α) : set α := {x | ∃ y ∈ s, x ≤ y}
 @[reducible] def upper_closure (s : set α) : set α := {x | ∃ y ∈ s, y ≤ x}
 
-lemma lower_closure_preimage_invo [has_involution α] (s : set α) : 
-  lower_closure (invo ⁻¹' s) = invo ⁻¹' (upper_closure s) := 
-begin
-  ext x, simp only [set.mem_set_of_eq, set.mem_preimage, exists_prop],
-  exact ⟨λ ⟨y,hy,hxy⟩, ⟨yᵒ, hy, invo_le_iff.mpr hxy⟩,
-    λ ⟨y,hy,hxy⟩, ⟨yᵒ, (@invo_invo _ _ _ y).symm ▸ hy, le_invo_comm.mpr hxy⟩⟩, 
-end 
+-- lemma lower_closure_preimage_invo [has_involution α] (s : set α) : 
+--   lower_closure (invo ⁻¹' s) = invo ⁻¹' (upper_closure s) := 
+-- begin
+--   ext x, simp only [set.mem_set_of_eq, set.mem_preimage, exists_prop],
+--   exact ⟨λ ⟨y,hy,hxy⟩, ⟨yᵒ, hy, invo_le_iff.mpr hxy⟩,
+--     λ ⟨y,hy,hxy⟩, ⟨yᵒ, (@invo_invo _ _ _ y).symm ▸ hy, le_invo_comm.mpr hxy⟩⟩, 
+-- end 
 
-lemma lower_closure_image_invo [has_involution α] (s : set α) : 
-  lower_closure (invo '' s) = invo '' (upper_closure s) := 
-by rw [image_invo_eq_preimage_invo, lower_closure_preimage_invo, image_invo_eq_preimage_invo]
+-- lemma lower_closure_image_invo [has_involution α] (s : set α) : 
+--   lower_closure (invo '' s) = invo '' (upper_closure s) := 
+-- by rw [image_invo_eq_preimage_invo, lower_closure_preimage_invo, image_invo_eq_preimage_invo]
 
-lemma upper_closure_image_invo [has_involution α] (s : set α) : 
-  upper_closure (invo '' s) = invo '' (lower_closure s) :=
-by {nth_rewrite 1 ←(@invo_invo_image _ s), rw [lower_closure_image_invo, invo_invo_image]}
+-- lemma upper_closure_image_invo [has_involution α] (s : set α) : 
+--   upper_closure (invo '' s) = invo '' (lower_closure s) :=
+-- by {nth_rewrite 1 ←(@invo_invo_image _ s), rw [lower_closure_image_invo, invo_invo_image]}
 
-lemma upper_closure_preimage_invo [has_involution α] (s : set α): 
-  upper_closure (invo ⁻¹' s) = invo ⁻¹' (lower_closure s) :=
-by rw [←image_invo_eq_preimage_invo, ←image_invo_eq_preimage_invo, upper_closure_image_invo]
+-- lemma upper_closure_preimage_invo [has_involution α] (s : set α): 
+--   upper_closure (invo ⁻¹' s) = invo ⁻¹' (lower_closure s) :=
+-- by rw [←image_invo_eq_preimage_invo, ←image_invo_eq_preimage_invo, upper_closure_image_invo]
 
-lemma set.Icc_dual''' (x y : α) : @set.Icc αᵒᵈ _ x y = @set.Icc α _ y x := 
-  set.dual_Icc 
+-- lemma set.Icc_dual''' (x y : α) : @set.Icc αᵒᵈ _ x y = @set.Icc α _ y x := 
+--   set.dual_Icc 
 
 end upper_lower
 
@@ -226,9 +225,11 @@ lemma set.finite.exists_minimal_mem [partial_order α] {s : set α} (hs : s.none
 
 end finite 
 
+
+
 section complete 
 
-variables [complete_lattice α] {a : α} {S : set α}
+variables [complete_lattice α] {a : α} {S : set α} {f : α → α}
 
 lemma Sup_image_sup_left_eq_sup_Sup_of_nonempty (hS : S.nonempty) : 
   Sup ((λ x, a ⊔ x) '' S) = a ⊔ (Sup S) := 
@@ -249,6 +250,27 @@ lemma Inf_image_inf_left_eq_inf_Inf_of_nonempty (hS : S.nonempty) :
   Inf ((λ x, a ⊓ x) '' S) = a ⊓ (Inf S) := 
 @Sup_image_sup_left_eq_sup_Sup_of_nonempty αᵒᵈ _ _ _ hS 
 
--- these are already in mathlib : supr_sup etc 
+-- these are already in mathlib : supr_sup etc . Maybe PR the below?
+
+lemma bsupr_eq_supr_subtype : 
+  (⨆ (x : α) (H : x ∈ S), f x) = ⨆ (y : ↥S), f y :=
+supr_subtype'  
+ 
+lemma bsupr_sup (hS : S.nonempty) : 
+  (⨆ (x ∈ S), (f x ⊔ a)) = (⨆ (x ∈ S), f x) ⊔ a := 
+by {simpa [supr_subtype'] using (@supr_sup _ _ _ hS.to_subtype _ _).symm} 
+
+lemma sup_bsupr (hS : S.nonempty) : 
+  (⨆ (x ∈ S), (a ⊔ f x)) = a ⊔ (⨆ (x ∈ S), f x) := 
+by {rw [sup_comm, ←bsupr_sup hS], simp_rw [sup_comm]}
+
+lemma binf_inf (hS : S.nonempty) : 
+  (⨅ (x ∈ S), (f x ⊓ a)) = (⨅ (x ∈ S), f x) ⊓ a :=
+@bsupr_sup αᵒᵈ _ _ _ _ hS
+  
+lemma inf_binf (hS : S.nonempty) : 
+  (⨅ (x ∈ S), (a ⊓ f x)) = a ⊓ (⨅ (x ∈ S), f x) :=
+@sup_bsupr αᵒᵈ _ _ _ _ hS
+
 
 end complete 
