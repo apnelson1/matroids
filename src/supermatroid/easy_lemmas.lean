@@ -229,7 +229,7 @@ end finite
 
 section complete 
 
-variables [complete_lattice α] {a : α} {S : set α} {f : α → α}
+variables [complete_lattice α] {a : α} {S T : set α} {f : α → α}
 
 lemma Sup_image_sup_left_eq_sup_Sup_of_nonempty (hS : S.nonempty) : 
   Sup ((λ x, a ⊔ x) '' S) = a ⊔ (Sup S) := 
@@ -272,5 +272,26 @@ lemma inf_binf (hS : S.nonempty) :
   (⨅ (x ∈ S), (a ⊓ f x)) = a ⊓ (⨅ (x ∈ S), f x) :=
 @sup_bsupr αᵒᵈ _ _ _ _ hS
 
+lemma Inf_diff_singleton_inf_of_mem_eq (ha : a ∈ S) : (Inf (S \ {a})) ⊓ a = Inf S :=
+begin
+  nth_rewrite 1 ←(Inf_singleton : Inf {a} = a), 
+  rw [←Inf_union, set.diff_union_of_subset (set.singleton_subset_iff.mpr ha)], 
+end 
+
+lemma Sup_diff_singleton_sup_of_mem_eq (ha : a ∈ S) : (Sup (S \ {a})) ⊔ a = Sup S :=
+@Inf_diff_singleton_inf_of_mem_eq αᵒᵈ _ _ _ ha
+
 
 end complete 
+
+section tfi 
+
+variables [complete_lattice α] {P : α → Prop} {S : set α}
+
+lemma foo (h : ∀ x y, P x → P y → P (x ⊔ y)) (hS : ∀ x ∈ S, P x) : P (Sup S) :=
+begin
+  
+end 
+
+
+end tfi 

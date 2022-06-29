@@ -200,6 +200,12 @@ lemma basis_for.indep_of_le (hb : b basis_for x) (hib : i ≤ b)  : indep i :=
 lemma base.basis_for_top (hb : base b) : b basis_for ⊤ := 
 hb.indep.basis_for le_top (λ j hj hbj h, hb.eq_of_le_indep hj h) 
 
+lemma basis_for_top_iff : b basis_for ⊤ ↔ base b := 
+⟨λ h, h.indep.base (λ j hj hbj, h.eq_of_le_indep hj hbj le_top), base.basis_for_top⟩
+
+lemma basis_for_bot_iff : x basis_for ⊥ ↔ x = ⊥ :=
+⟨λ h, le_bot_iff.mp h.le, by {rintro rfl, exact (bot_indep α).basis_for_self}⟩ 
+
 lemma basis_for.basis_for_sup_self (hi : i basis_for x) : i basis_for (x ⊔ i) := 
 hi.indep.basis_for le_sup_right 
   (λ j hj hjix hij, (hi.eq_of_le_indep hj hij (by {rwa [sup_eq_left.mpr hi.le] at hjix})))
@@ -237,6 +243,12 @@ lemma canopy_for.not_spanning_of_lt (hs : s canopy_for x) (hts : t < s) (hxt : x
 lemma canopy_for.canopy_for_of_le (hs : s canopy_for x) (hys : y ≤ s) (hxy : x ≤ y) : 
   s canopy_for y := 
 @basis_for.basis_for_of_le αᵒᵈ _ _ _ _ hs hys hxy
+
+lemma canopy_for_top_iff : x canopy_for ⊤ ↔ x = ⊤ :=
+@basis_for_bot_iff αᵒᵈ _ _
+
+lemma canopy_for_bot_iff : b canopy_for ⊥ ↔ base b := 
+@basis_for_top_iff αᵒᵈ _ _
 
 end canopy
 
