@@ -290,7 +290,7 @@ variables [complete_lattice α] {P : α → Prop} {S : set α}
 
 lemma foo (h : ∀ x y, P x → P y → P (x ⊔ y)) (hS : ∀ x ∈ S, P x) : P (Sup S) :=
 begin
-  
+  sorry
 end 
 
 
