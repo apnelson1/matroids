@@ -1,4 +1,5 @@
-import .supermatroid
+import .supermatroid 
+import order.zorn
 
 universes u v 
 
@@ -25,17 +26,36 @@ end defs
 
 section qmatroid 
 
-/-- A `qmatroid` is a `supermatroid` such that, if `i` is a basis for each element in a collection 
-`S`, then `i` is a basis for `Sup S`. -/
+/-- A `qmatroid` is a `supermatroid` with some lattice-closure conditions on the set of elements
+spanned by an independent set i -/
 class qmatroid (α : Type u) extends supermatroid α := 
-(basis_for_Sup_of_forall_basis_for : 
-  ∀ (i : α) (S : set α) (hS : S.nonempty), (∀ x ∈ S, i basis_for x) → i basis_for (Sup S))
+(basis_for_sup : ∀ (i x y : α), i basis_for x → i basis_for y → i basis_for x ⊔ y)
+(basis_for_Sup_chain : ∀ (i C), 
+  is_chain (≤) C → C.nonempty → (∀ (x ∈ C), i basis_for x) → i basis_for (Sup C))
+(canopy_for_Inf_chain : ∀ (s C), 
+  is_chain (≤) C → C.nonempty → (∀ (x ∈ C), s canopy_for x) → s canopy_for (Inf C))
 
 variables [qmatroid α] {S : set α} {i j x y x' y' z z' s t a b : α} {f : α → α}
 
+lemma basis_for.sup (hx : i basis_for x) (hy : i basis_for y) : i basis_for x ⊔ y := 
+qmatroid.basis_for_sup _ _ _ hx hy 
+
+lemma indep.basis_for_Sup_basis_for (hi : indep i) : i basis_for Sup {x | i basis_for x} :=
+begin
+  obtain ⟨u, hub, hu⟩ := @zorn_partial_order₀ α _ {x | i basis_for x} 
+    (λ C hCb hC, C.eq_empty_or_nonempty.elim 
+      (by {rintro rfl, exact ⟨i, hi.basis_for_self, by simp⟩, })
+      (λ hC_ne, ⟨Sup C, qmatroid.basis_for_Sup_chain _ _ hC hC_ne hCb, λ _, le_Sup⟩)), 
+  have h : Sup {x : α | i basis_for x} = u := (le_Sup hub).antisymm'   
+    (Sup_le (λ x hx, sup_eq_right.mp (hu _ (basis_for.sup hx hub) le_sup_right))), 
+  rwa h, 
+end 
+
 lemma basis_for_Sup_of_forall (hS : S.nonempty) (h : ∀ x ∈ S, i basis_for x) : 
   i basis_for (Sup S) := 
-qmatroid.basis_for_Sup_of_forall_basis_for _ _ hS h 
+(exists.elim hS (λ x hx, (h x hx).indep)).basis_for_Sup_basis_for.basis_for_of_le 
+  (exists.elim hS (λ x hx, (h x hx).le.trans (le_Sup hx)))
+  (Sup_le (λ x hx, le_Sup (h x hx)))
 
 lemma basis_for_bsupr_of_forall (hS : S.nonempty) (h : ∀ x ∈ S, i basis_for (f x)) : 
   i basis_for (⨆ (x ∈ S), f x) :=

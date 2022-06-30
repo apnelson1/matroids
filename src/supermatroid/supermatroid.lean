@@ -2,7 +2,7 @@
 Copyright stuff
 -/
 import .base_family
-import order.zorn 
+
 /-! 
 This file defines `supermatroids`; these are nonempty antichains of `bases` in a modular lattice 
 that satisfy two axioms asserting the existence of bases under various conditions. 
@@ -314,36 +314,5 @@ end
 lemma canopy_for.canopy_for_inf_mono (hsx : s canopy_for x) (ht : spanning t) (hts : t ≤ s) :
   t canopy_for (x ⊓ t) :=
 @basis_for.basis_for_sup_mono αᵒᵈ _ _ _ _ hsx ht hts
-
-/-- #### Compactness? -/
-
-lemma indep.compact {S : set α} (hi : indep i) (hi : i ≤ Sup S) : ∃ T ⊆ S, T.finite ∧ i ≤ Sup T := 
-begin
-  --by_contradiction h, push_neg at h, 
-  set P := {j | j ≤ i ∧ ∃ T ⊆ S, T.finite ∧ j ≤ Sup T} with hP, 
-  obtain ⟨j,⟨⟨hj,T,hTS,hT,hTj⟩ ,hj'⟩⟩ := zorn_preorder₀ P sorry,
-  refine ⟨T,hTS,hT,_⟩,
-   
-  
-  
-
-  -- rwa (le_antisymm (Sup_le_Sup hTS) (Sup_le (λ b hbS, (by_contra (λ h, _)))) : Sup T = Sup S), 
-  -- have : Sup T < Sup (T ∪ {b}) := sorry, 
-   
-
-
-  --have : b < Sup (T ∪ {x})
-  
-  --rw hP at hj', simp at hj', 
-  
-   
-
-
-
-
-
-
-
-end 
 
 end supermatroid
