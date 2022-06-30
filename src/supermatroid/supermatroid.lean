@@ -10,7 +10,7 @@ that satisfy two axioms asserting the existence of bases under various condition
 
 universes u v 
 
-variables {α : Type u}
+variables {α : Type u} {κ : Type v}
 
 open set order_dual 
 
@@ -234,15 +234,24 @@ lemma canopy_for.eq_sup_super_both (hsx : s canopy_for x) (hsy : s canopy_for y)
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b :=
 @basis_for.eq_inf_base_both αᵒᵈ _ _ _ _ hsx hsy
 
-lemma eq_inf_basis_forall_of_basis_for_forall {S : set α} (hS : ∀ x ∈ S, i basis_for x) :
-  ∃ b, base b ∧ ∀ x ∈ S, i = x ⊓ b :=
-S.eq_empty_or_nonempty.elim (by {rintro rfl, exact (exists_base α).imp (by simp)})
-  (by {rintro ⟨y,hy⟩, refine (hS y hy).indep.imp 
-    (λ b hb, ⟨hb.1, λ x hx, (hS x hx).eq_inf_base_of_le_base hb.1 hb.2⟩)})
+lemma eq_inf_basis_forall_of_basis_for_forall {x : κ → α} (h : ∀ k, i basis_for x k) : 
+  ∃ b, base b ∧ ∀ k, i = (x k) ⊓ b := 
+(is_empty_or_nonempty κ).elim (λ he, (exists_base α).imp (λ b hb, ⟨hb, he.elim⟩ )) 
+  (λ ⟨k⟩, (h k).indep.imp (λ b hb, ⟨hb.1, λ k', (h k').eq_inf_base_of_le_base hb.1 hb.2⟩))
 
-lemma eq_sup_basis_forall_of_canopy_for_forall {S : set α} (hS : ∀ x ∈ S, s canopy_for x) : 
+lemma eq_inf_basis_forall_of_basis_for_forall_mem {S : set α} (hS : ∀ x ∈ S, i basis_for x) :
+  ∃ b, base b ∧ ∀ x ∈ S, i = x ⊓ b :=
+(@eq_inf_basis_forall_of_basis_for_forall α S _ i coe (λ ⟨x,hx⟩, hS x hx)).imp 
+  (λ b hb, ⟨hb.1, λ x hx, (hb.2 ⟨x,hx⟩)⟩)
+
+lemma eq_sup_basis_forall_of_canopy_for_forall {x : κ → α} (h : ∀ k, s canopy_for x k) :
+  ∃ b, base b ∧ ∀ k, s = x k ⊔ b :=
+@eq_inf_basis_forall_of_basis_for_forall αᵒᵈ κ _ _ _ h
+
+lemma eq_sup_basis_forall_of_canopy_for_forall_mem {S : set α} (hS : ∀ x ∈ S, s canopy_for x) : 
   ∃ b, base b ∧ ∀ x ∈ S, s = x ⊔ b :=
-@eq_inf_basis_forall_of_basis_for_forall αᵒᵈ _ _ S hS
+@eq_inf_basis_forall_of_basis_for_forall_mem αᵒᵈ _ _ S hS
+
 
 lemma canopy_for.eq_sup_base_both (hsx : s canopy_for x) (hsy : s canopy_for y) : 
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b := 
@@ -279,7 +288,7 @@ lemma base.sup_canopy_for_iff_inf_basis_for (hb : base b):
   (x ⊔ b) canopy_for x ↔ (x ⊓ b) basis_for x := 
 ⟨@base.sup_canopy_for_of_inf_basis_for αᵒᵈ _ _ _ hb, hb.sup_canopy_for_of_inf_basis_for⟩
 
--- This lemma is the exchange axiom in the restriction to `x`
+-- This lemma is the independence augmentation axiom in the restriction to `x`
 lemma indep.lt_basis_for_le_sup_of_not_basis_for (hi : indep i) (hin : ¬ (i basis_for x)) 
 (hj : j basis_for x) (hix : i ≤ x) :
   ∃ i', i' basis_for x ∧ i < i' ∧ i' ≤ i ⊔ j :=
@@ -310,6 +319,7 @@ begin
   refine lt_of_le_of_lt (le_inf hij inf_le_left) 
     (inf_lt_inf_of_lt_of_sup_le_sup hlt (sup_le (sup_comm.subst hj'.le) le_sup_right)),
 end 
+ 
 
 lemma canopy_for.canopy_for_inf_mono (hsx : s canopy_for x) (ht : spanning t) (hts : t ≤ s) :
   t canopy_for (x ⊓ t) :=

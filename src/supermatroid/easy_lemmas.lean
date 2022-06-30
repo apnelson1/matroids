@@ -282,4 +282,10 @@ lemma Sup_diff_singleton_sup_of_mem_eq (ha : a ∈ S) : (Sup (S \ {a})) ⊔ a = 
 @Inf_diff_singleton_inf_of_mem_eq αᵒᵈ _ _ _ ha
 
 
+lemma supr_bool_eq' {f : bool → α} (i : bool) : (⨆ j, f j) = f i ⊔ f (!i) := 
+by {rw supr_bool_eq, cases i; simp [sup_comm]}
+
+lemma infi_bool_eq' {f : bool → α} (i : bool) : (⨅ j, f j) = f i ⊓ f (!i) := 
+@supr_bool_eq' αᵒᵈ _ _ _
+
 end complete 

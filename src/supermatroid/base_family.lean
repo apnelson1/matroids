@@ -165,6 +165,9 @@ def basis_for (i x : α) := indep i ∧ i ≤ x ∧ ∀ j, indep j → j ≤ x �
 
 infix ` basis_for `:50 := basis_for
 
+/-- `x` has rank zero if `⊥` is a basis for `x` -/
+def rank_zero (x : α) := ⊥ basis_for x
+
 lemma basis_for.indep (h : b basis_for x) : indep b := h.1
 
 lemma basis_for.le (h : b basis_for x) : b ≤ x := h.2.1
