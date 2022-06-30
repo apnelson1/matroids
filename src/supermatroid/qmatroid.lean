@@ -46,9 +46,8 @@ begin
     (λ C hCb hC, C.eq_empty_or_nonempty.elim 
       (by {rintro rfl, exact ⟨i, hi.basis_for_self, by simp⟩, })
       (λ hC_ne, ⟨Sup C, qmatroid.basis_for_Sup_chain _ _ hC hC_ne hCb, λ _, le_Sup⟩)), 
-  have h : Sup {x : α | i basis_for x} = u := (le_Sup hub).antisymm'   
+  rwa (le_Sup hub).antisymm'   
     (Sup_le (λ x hx, sup_eq_right.mp (hu _ (basis_for.sup hx hub) le_sup_right))), 
-  rwa h, 
 end 
 
 lemma basis_for_Sup_of_forall (hS : S.nonempty) (h : ∀ x ∈ S, i basis_for x) : 
@@ -266,7 +265,7 @@ begin
 end 
 
 
-lemma spans_supr_of_forall {a x : κ → α} (h : ∀ k, a k spans x k) : (⨆ k, a k) spans (⨆ k, x k) :=
+lemma supr_spans_supr_of_forall {a x : κ → α} (h : ∀ k, a k spans x k) : (⨆ k, a k) spans (⨆ k, x k) :=
 begin
   refine (is_empty_or_nonempty κ).elim (λ he, _ ) (λ hk, _),
   { simp_rw @supr_of_empty _ _ _ he, exact spans_bot _, },
@@ -281,20 +280,20 @@ end
 lemma spans_Sup_of_forall (h : ∀ x ∈ S, a spans x) : a spans (Sup S) :=
 begin
   refine S.eq_empty_or_nonempty.elim (by {rintro rfl, simpa using spans_bot _}) (λ hS, _),
-  convert @spans_supr_of_forall α S _ (λ _, a) coe (λ ⟨x,hx⟩, h x hx), 
+  convert @supr_spans_supr_of_forall α S _ (λ _, a) coe (λ ⟨x,hx⟩, h x hx), 
   rw @supr_const _ _ _ hS.to_subtype, simp, 
 end 
 
 lemma spans.sup (ha : a spans x) (hb : b spans y) : (a ⊔ b) spans (x ⊔ y) :=
 begin
   rw [sup_eq_supr, sup_eq_supr], 
-  exact @spans_supr_of_forall _ _ _ (λ i, cond i a b) (λ i, cond i x y) 
+  exact @supr_spans_supr_of_forall _ _ _ (λ i, cond i a b) (λ i, cond i x y) 
     (λ i, by {cases i; assumption}), 
 end
 
 lemma bsupr_spans_Sup_of_forall (h : ∀ x ∈ S, f x spans x) : (⨆ (x ∈ S), f x) spans Sup S :=
 begin
-  convert @spans_supr_of_forall α S _ (λ z, f z) coe (λ (z : S), h z.1 z.2) using 1, 
+  convert @supr_spans_supr_of_forall α S _ (λ z, f z) coe (λ (z : S), h z.1 z.2) using 1, 
   exact supr_subtype',
   rw [Sup_eq_supr, supr_subtype'], refl, 
 end 
@@ -304,89 +303,93 @@ lemma basis_for.sup_canopy_of_le_base (hix : i basis_for x) (hb : base b) (hib :
 by {obtain rfl := hix.eq_of_le_indep (hb.inf_left_indep x) (le_inf hix.le hib) inf_le_left, 
   rwa hb.sup_canopy_for_iff_inf_basis_for}
 
-
-instance : qmatroid αᵒᵈ := { 
-   basis_for_Sup_of_forall_basis_for := sorry, 
- }
-
-lemma Foo (h : ∀ x ∈ S, s canopy_for x) (hInf : Inf S = ⊥) : base s :=
+lemma closure_inf_eq_inf_closure_of_indep (hij : indep (i ⊔ j)) : 
+  closure i ⊓ closure j = closure (i ⊓ j) :=
 begin
-  obtain ⟨b,hb, hSb⟩ := eq_sup_basis_forall_of_canopy_for_forall h, 
-  
-  refine S.eq_empty_or_nonempty.elim _ (λ hS, _),
-  { rintro rfl, rw [Inf_empty, eq_comm] at hInf, 
-    obtain ⟨b,hb⟩ := exists_base α, 
-    rw [eq_top_of_bot_eq_top hInf s], 
-    rwa eq_top_of_bot_eq_top hInf b at hb }, 
+  refine le_antisymm _ (le_inf (closure_mono inf_le_left) (closure_mono inf_le_right)),
+  rw [←spans_iff_le_closure, spans_iff_exists], 
+  obtain ⟨hi,hj⟩  := ⟨hij.indep_of_le le_sup_left, hij.indep_of_le le_sup_right⟩, 
+  refine ⟨i ⊓ j, (hij.indep_of_le inf_le_sup).basis_for le_sup_right _, rfl.le⟩,
+  intros k hk hkij hijk, 
+  rw [sup_eq_left.mpr _] at hkij, swap, exact inf_le_inf (le_closure_self _) (le_closure_self _),
+  obtain ⟨hki,hkj⟩ := le_inf_iff.mp hkij, 
+  rw [←spans_iff_le_closure, spans_iff_forall] at hki hkj, 
+  specialize hkj _ (hj.basis_for_self), 
+  specialize hki _ (hi.basis_for_self), 
+  clear hkij, 
 
-  have h_Two : ∀ x, ∃ y ∈ S, y ≠ x := 
+  --- Hmm.... ideas:
+  --- WMA i ⊔ j is a basis (otherwise restrict to i ⊔ j) ...
+  --- and (probably) that i ⊓ j = ⊥ (otherwise contract i ⊓ j)
+  --- extend k to bases ki and kj of i ⊔ k and j ⊔ k respectively. 
+  --- By hkj and hij, the elements i ⊔ kj, j ⊔ ki and (ki ⊔ kj) are spanning. 
+  --- Since i is a basis of i ⊔ k, (i ⊔ j) ⊔ (i ⊔ k) = i ⊔ j ⊔ k is a canopy of i ⊔ k. 
+  --- It follows that i ⊔ kj = i ⊔ j ⊔ k, since i ⊔ kj is a spanning set in [i ⊔ k, i ⊔ j ⊔ k]. 
+  --- Similarly, j ⊔ ki = i ⊔ j ⊔ k. 
+  --- It follows that all the elements in [ki, i ⊔ j ⊔ k] have the same sup with j. 
+  --- Try to find two that have the same inf! Or to exploit symmetry or something...  so close. 
+  
+    
+end  
+
+
+lemma Foo {x : bool → α} (h_can : ∀ k, s canopy_for (x k)) : s canopy_for (⨅ k, x k) :=
+begin
+  obtain ⟨b,hb, (hsb : ∀ k, s = x k ⊔ b)⟩ := eq_sup_basis_forall_of_canopy_for_forall h_can, 
+
+  have h_bas := λ k, hb.sup_canopy_for_iff_inf_basis_for.mp ((hsb k).subst (h_can k)),
+
+  have hsupr_inf_basis : (⨆ k, ((x k) ⊓ b)) basis_for ⨆ k, x k := indep.basis_for_of_spans_le 
+    (hb.indep_of_le (Sup_le (by simp)))
+    (supr_spans_supr_of_forall (λ k, (h_bas k).spans))
+    (supr_le (λ k, inf_le_left.trans (le_supr _ _))),
+    
+  have h_distrib : (⨆ k, x k ⊓ b) = (⨆ k, x k) ⊓ b := 
+    hsupr_inf_basis.eq_of_le_indep (hb.inf_left_indep _) 
+    (supr_le (λ k, inf_le_inf_right _ (le_supr _ _))) inf_le_left,  
+
+  have h_distrib' : ∀ k, (x k ⊓ b) ⊔ (x (!k)) ⊓ b = (x k ⊔ x (!k)) ⊓ b :=   
+    λ k, by rw [←supr_bool_eq' k, h_distrib, supr_bool_eq'],
+
+  have hwow : ∀ k, x k = (x k) ⊓ b ⊔ ((x k) ⊓ (x (!k))) := 
   begin
-    sorry,
+    intro k, 
+    rw [inf_comm, @inf_comm _ _ _ (x (!k)), is_modular_lattice.inf_sup_inf_assoc, eq_comm, 
+      inf_eq_right, inf_comm],  
+     
+    calc x k ≤ (x k ⊔ b) ⊓ (x k ⊔ x (!k))     : le_inf le_sup_left le_sup_left 
+        ...  = _ : by {rw [←hsb k, hsb (!k), sup_inf_assoc_of_le, inf_comm, ←h_distrib', sup_comm], 
+                        exact le_sup_right}
+        ...  ≤ _ : sup_le (sup_le_sup_left inf_le_left _) le_sup_right,
   end, 
 
-  have h_s_eq : ∀ x ∈ S, s = (Sup (S \ {x})) ⊔ b := 
-  begin
-    intros x hx, obtain ⟨y,hy,hyx⟩ := h_Two x, 
-    refine le_antisymm ((hSb x hx).le.trans (sup_le _ le_sup_right)) (sup_le (Sup_le _) _), 
-    { calc x ≤ x ⊔ b : le_sup_left 
-         ... = y ⊔ b : by rw [←hSb x hx, hSb y hy] 
-         ... ≤ _ : sup_le_sup_right (le_Sup (mem_diff_singleton.mpr ⟨hy, hyx⟩)) _},
-    refine λ z hz, calc z ≤ z ⊔ b : le_sup_left ... = s : by rw [←hSb z (mem_of_mem_diff hz)], 
-    refine le_sup_right.trans (hSb x hx).symm.le, 
-  end,
+  have hwoww : ∀ k, s = ((x k) ⊓ (x (!k))) ⊔ b := 
+  λ k, le_antisymm 
+    ((hsb k).le.trans (sup_le ((hwow k).le.trans 
+      (sup_comm.le.trans (sup_le_sup_left inf_le_right _))) le_sup_right))
+    (sup_le ((inf_le_of_left_le (@le_sup_left _ _ (x k) _)).trans (hsb k).symm.le) 
+      (le_sup_right.trans (hsb k).symm.le)), 
 
-  have h_s_eq' : ∀ x ∈ S, x ⊔ b = (Sup (S \ {x})) ⊔ b := λ x hx, by rw [←h_s_eq x hx, hSb x hx],
+  rw infi_bool_eq, 
+  rw [hwoww tt, bool.bnot_true, hb.sup_canopy_for_iff_inf_basis_for], 
+  specialize h_can tt, 
+  rw [hwoww tt] at h_can, 
 
-
-  have h_forall_basis := λ x hx, hb.sup_canopy_for_iff_inf_basis_for.mp ((hSb x hx).subst (h x hx)),
-
+  refine indep.basis_for_of_spans_le (hb.inf_left_indep _) _ inf_le_left,
+  have blah : (x tt ⊓ x ff ⊓ b) = (x tt ⊓ b) ⊓ (x ff ⊓ b) := 
+    by {rw [inf_assoc, inf_assoc], congr' 1, simp},
+  rw [spans_iff_le_closure, blah, 
+    ←closure_inf_eq_inf_closure_of_indep (hb.indep_of_le (sup_le inf_le_right inf_le_right))],   
   
-  
-
-  have hSup_inf_basis : (⨆ (x ∈ S), (x ⊓ b)) basis_for Sup S := indep.basis_for_of_spans_le 
-    (hb.indep_of_le (Sup_le (by simp)))
-    (bsupr_spans_Sup_of_forall (λ x hx, (h_forall_basis x hx).spans))
-    (supr₂_le (λ x hx, inf_le_left.trans (le_Sup hx))), 
-  
-  have h_distrib : (⨆ (x ∈ S), x ⊓ b) = (Sup S) ⊓ b := 
-    hSup_inf_basis.eq_of_le_indep (hb.inf_left_indep _) 
-    (supr₂_le (λ x hx, le_inf (inf_le_left.trans (le_Sup hx)) inf_le_right)) inf_le_left,  
-
-  have hbleh : ∀ x ∈ S, x ⊓ Sup (S \ {x}) ≤ b, 
-  begin
-    refine λ x hx, inf_eq_left.mp (@eq_of_le_of_inf_le_of_sup_le' _ _ _ _ _ (Inf (S \ {x})) _ _ _),  
-    exact inf_le_left, sorry, 
-
-  end,
-
-  have hwin : ∀ x ∈ S, x ≤ b := 
-  begin
-    refine λ x hx, inf_eq_left.mp (@eq_of_le_of_inf_le_of_sup_le _ _ _ _ _ 
-      (Sup (S \ {x})) inf_le_left _ (sup_le _ le_sup_right)), 
-    { refine le_inf (le_inf inf_le_left (hbleh x hx)) inf_le_right},
-
-    calc x ≤ ((Sup (S \ {x})) ⊔ b) ⊓ (Sup S)    : 
-        le_inf (le_sup_left.trans (h_s_eq' x hx).le) (le_Sup hx)
-      ...  = Sup (S \ {x}) ⊔ (Sup S ⊓ b)        : 
-        by {rw [sup_inf_assoc_of_le, inf_comm], exact Sup_le_Sup (diff_subset _ _),   }
-      ...  = Sup (S \ {x}) ⊔ (⨆ (x ∈ S), x ⊓ b) : 
-        by rw ←h_distrib
-      ...  ≤ _ : sup_le le_sup_right (supr₂_le (λ z hz, _)),
-
-    obtain rfl | hzx := em (z = x), exact le_sup_left, 
-    exact inf_le_of_left_le (le_sup_of_le_right (le_Sup (mem_diff_singleton.mpr ⟨hz,hzx⟩))),
-  end,
-  
-  obtain ⟨x,hx⟩ := hS, 
-  rwa (sup_eq_right.mpr (hwin x hx)).subst (hSb x hx), 
+  exact inf_le_inf (spans_iff_le_closure.mp ((h_bas _).spans)) 
+    (spans_iff_le_closure.mp ((h_bas _).spans)),   
 end 
 
 
-lemma foo (hsx : s canopy_for x) (hsy : s canopy_for y) (cheat : x ⊓ y = ⊥) (cheat' : spanning (x ⊔ y)): 
-  s canopy_for (x ⊓ y) :=
+lemma foo (hsx : s canopy_for x) (hsy : s canopy_for y) : s canopy_for (x ⊓ y) :=
 
 begin
-  rw [cheat, canopy_for_bot_iff], 
+  --rw [cheat, canopy_for_bot_iff], 
   obtain ⟨b,hb,hsbx,hsby⟩ := hsx.eq_sup_super_both hsy, 
   --obtain rfl := (by rw [←hbx,←hby, inf_idem]:  s = (x ⊔ b) ⊓ (y ⊔ b)), 
   --obtain rfl := (sorry : s = x ⊓ y ⊔ b),  
@@ -414,24 +417,28 @@ begin
     (hbx.spans.sup hby.spans) 
       (sup_le (inf_le_of_left_le le_sup_left) (inf_le_of_left_le le_sup_right)), 
   
+  by_contradiction hs, 
+  obtain ⟨b',hb',hb'xy, hb's⟩ := (sorry : spanning s).exists_sup_base_lt_of_not_canopy_for hs sorry,
+
+  have hb'i := hb'.sup_canopy_for_iff_inf_basis_for.mp hb'xy, 
+
+  have hb'x : b' < x ⊔ b := ((sup_le_iff.mp hb's.le).2.trans hsbx.le).lt_of_ne 
+    (λ h, hb's.not_le (hsbx.le.trans (h ▸ le_sup_right))), 
+  
+  -- have hb'y : b' < y ⊔ b := ((sup_le_iff.mp hb's.le).2.trans hsby.le).lt_of_ne 
+  --   (λ h, hb's.not_le (hsby.le.trans (h ▸ le_sup_right))), 
+  
+  have : x ⊔ b' = x ⊔ b :=
+    hsx.eq_of_spanning_le le_sup_left (sup_le le_sup_left hb'x.le) (hb'.sup_left_spanning _), 
+  
+  
   
 
   
-  
-
-  
-  
 
 
-  -- --obtain ⟨i, hi,hlei⟩ := (hb.inf_left_indep (x ⊔ y)).le_basis_for_sup_right y, 
-  -- obtain ⟨b',hb',hib',hb'i⟩ := (hb.inf_left_indep (x ⊔ y)).exists_base_mid_of_le_sup_base hb, 
-  -- rw [sup_comm, inf_comm, sup_inf_self] at hb'i, 
-  -- have hb'y : b' ≤ y ⊔ b, by 
-  -- { },
-
-  -- have h'y := hsy.eq_of_spanning_le le_sup_left (sup_le le_sup_left hb'y) (hb'.sup_left_spanning _), 
   
-  
+end 
 
   
 
@@ -467,70 +474,56 @@ begin
 
 
 
-  -- obtain ⟨iy, hiy, hyiy⟩ := (hb.inf_left_indep y).le_basis_for_sup_right x,
-  -- obtain ⟨ix, hix, hxix⟩ := (hb.inf_left_indep x).le_basis_for_sup_right y,
+--   -- obtain ⟨iy, hiy, hyiy⟩ := (hb.inf_left_indep y).le_basis_for_sup_right x,
+--   -- obtain ⟨ix, hix, hxix⟩ := (hb.inf_left_indep x).le_basis_for_sup_right y,
 
-  -- have : ix ⊓ x ≤ b, sorry, 
+--   -- have : ix ⊓ x ≤ b, sorry, 
 
 
 
-  --rw ←hb.sup_canopy_for_iff_inf_basis_for at hxy, 
+--   --rw ←hb.sup_canopy_for_iff_inf_basis_for at hxy, 
   
 
-  -- -- rw hs, 
+--   -- -- rw hs, 
   
-  -- have hle : (x ⊓ b) ⊔ (y ⊓ b) ≤ (x ⊔ y) ⊓ b := 
-  --   sup_le (inf_le_inf_right _ le_sup_left) (inf_le_inf_right _ le_sup_right),
+--   -- have hle : (x ⊓ b) ⊔ (y ⊓ b) ≤ (x ⊔ y) ⊓ b := 
+--   --   sup_le (inf_le_inf_right _ le_sup_left) (inf_le_inf_right _ le_sup_right),
   
-  -- have hxyb := (hb.inf_left_indep (x ⊔ y)).basis_for_sup_of_spans 
-  --   ((hsx.spans.sup hsy.spans).mono_left hle), 
-  -- rw [sup_inf_self] at hxyb, 
+--   -- have hxyb := (hb.inf_left_indep (x ⊔ y)).basis_for_sup_of_spans 
+--   --   ((hsx.spans.sup hsy.spans).mono_left hle), 
+--   -- rw [sup_inf_self] at hxyb, 
   
 
-  -- suffices h : (x ⊓ y) ⊔ b canopy_for x ⊓ y, 
-  -- rw [h.eq_of_spanning_le (sorry : _ ≤ s) _ sorry, hb.sup_canopy_for_iff_inf_basis_for], 
-  -- --refine canopy_for.canopy_for_of_le _ _ _, 
-
-  
+--   -- suffices h : (x ⊓ y) ⊔ b canopy_for x ⊓ y, 
+--   -- rw [h.eq_of_spanning_le (sorry : _ ≤ s) _ sorry, hb.sup_canopy_for_iff_inf_basis_for], 
+--   -- --refine canopy_for.canopy_for_of_le _ _ _, 
 
   
 
   
-  
-end 
 
-
-
--- begin
---   obtain ⟨i,hi,hix⟩ := h, 
-
---   obtain ⟨j,hj,hjx⟩ := hi.indep.le_basis_for_sup_right a, 
-
---   -- obtain ⟨j',hj',hjj'⟩ := hj.indep.le_basis_for_of_le (sorry : j ≤ x ⊔ a), 
---   -- have := hj.eq_of_le_indep hj'.indep hjj' _, swap, 
-  
---   --have : i' ≤ y ⊔ a := by {refine hi'.le.trans _,},
---   --obtain ⟨j,hj,hjy⟩ := hi'.indep.le_basis_for_of_le (sorry : i' ≤ y ⊔ a),
-  
---   -- refine ⟨j, hj.indep.basis_for sorry (λ j' hj' hj'y hjj', _), sorry⟩, 
---   -- refine hj.eq_of_le_indep hj' hjj' _, 
-  
---   --rw hi.eq_of_le_indep (hj'.inf_right_indep y) sorry inf_le_right, 
--- end 
-
-
-
--- lemma foo (h : ∀ {x y i : α}, i basis_for x → i basis_for y → i basis_for (x ⊔ y)) :
--- (∀ {x y s : α}, s canopy_for x → s canopy_for y → s canopy_for (x ⊓ y)) :=
-
--- begin
---   rintros x y s hx hy, 
---   obtain ⟨b, hb, hbx, hby⟩ := hx.eq_sup_base_both hy, 
---   refine ⟨⟨b,hb,hbx.substr le_sup_right⟩,inf_le_of_left_le (hbx.substr le_sup_left),
---     λ t ht hxyt hts, le_antisymm (hbx.substr _) hts⟩,  
   
   
 -- end 
+
+
+
+-- -- begin
+-- --   obtain ⟨i,hi,hix⟩ := h, 
+
+-- --   obtain ⟨j,hj,hjx⟩ := hi.indep.le_basis_for_sup_right a, 
+
+-- --   -- obtain ⟨j',hj',hjj'⟩ := hj.indep.le_basis_for_of_le (sorry : j ≤ x ⊔ a), 
+-- --   -- have := hj.eq_of_le_indep hj'.indep hjj' _, swap, 
+  
+-- --   --have : i' ≤ y ⊔ a := by {refine hi'.le.trans _,},
+-- --   --obtain ⟨j,hj,hjy⟩ := hi'.indep.le_basis_for_of_le (sorry : i' ≤ y ⊔ a),
+  
+-- --   -- refine ⟨j, hj.indep.basis_for sorry (λ j' hj' hj'y hjj', _), sorry⟩, 
+-- --   -- refine hj.eq_of_le_indep hj' hjj' _, 
+  
+-- --   --rw hi.eq_of_le_indep (hj'.inf_right_indep y) sorry inf_le_right, 
+-- -- end 
 
 
 end qmatroid
