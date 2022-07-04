@@ -288,4 +288,22 @@ by {rw supr_bool_eq, cases i; simp [sup_comm]}
 lemma infi_bool_eq' {f : bool → α} (i : bool) : (⨅ j, f j) = f i ⊓ f (!i) := 
 @supr_bool_eq' αᵒᵈ _ _ _
 
+open subtype 
+
+instance {a : α} : complete_lattice (set.Iic a) := {
+Sup := λ S, ⟨complete_lattice.Sup (coe '' S), 
+  (Sup_le (λ _ ⟨⟨b,hb⟩,hbS, rfl⟩, hb) : complete_lattice.Sup (coe '' S) ≤ a)⟩,
+Inf := λ S, ⟨a ⊓ (complete_lattice.Inf (coe '' S)), (inf_le_left : a ⊓ _ ≤ a)⟩,
+le_Sup := λ _ _ h, coe_le_coe.mp (le_Sup (set.mem_image_of_mem _ h)),
+Sup_le := λ _ _ h, coe_le_coe.mp (Sup_le (λ y ⟨z,hz1, hz2⟩, 
+  by {rw [←hz2, coe_le_coe], exact h z hz1})), 
+Inf_le := λ S x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le ⟨x,h,rfl⟩)), 
+le_Inf := λ S x h, le_inf x.2 (le_Inf (λ b ⟨z,hz1,hz2⟩, 
+  by {rw [←hz2, coe_le_coe], exact h z hz1})),
+  
+.. (infer_instance : lattice (set.Iic a)),
+.. (infer_instance : bounded_order (set.Iic a))
+}
+
+
 end complete 
