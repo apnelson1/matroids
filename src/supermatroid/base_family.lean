@@ -83,6 +83,8 @@ hs.spanning_of_le le_sup_left
 lemma spanning.sup_left_spanning (hs : spanning s) (x : α) : spanning (x ⊔ s) := 
 hs.spanning_of_le le_sup_right
 
+lemma spanning_iff_basis_le : spanning s ↔ ∃ b, base b ∧ b ≤ s := iff.rfl 
+
 lemma base.spanning (h : base b) : spanning b := ⟨b, h, rfl.le⟩ 
 
 lemma base.spanning_of_le (h : base b) (hbs : b ≤ s) : spanning s := 
@@ -176,14 +178,17 @@ lemma indep.basis_for (hi : indep i) (hix : i ≤ x) (h : ∀ j, indep j → j �
   i basis_for x :=
 ⟨hi,  hix, h⟩
 
-lemma indep.basis_for_self (hi : indep i) : i basis_for i := 
+lemma indep.basis_self (hi : indep i) : i basis_for i := 
 hi.basis_for rfl.le (λ h hj, flip le_antisymm)
 
-lemma base.basis_for_sup_left (hb : base b) (x : α) : b basis_for (b ⊔ x) := 
+lemma basis_self_iff_indep : i basis_for i ↔ indep i := 
+⟨λ h, h.indep, indep.basis_self⟩
+
+lemma base.basis_sup_left (hb : base b) (x : α) : b basis_for (b ⊔ x) := 
 hb.indep.basis_for le_sup_left (λ j hj hjx hbj, hb.eq_of_le_indep hj hbj)
 
-lemma base.basis_for_sup_right (hb : base b) (x : α) : b basis_for (x ⊔ b) := 
-by {rw sup_comm, exact hb.basis_for_sup_left x}
+lemma base.basis_sup_right (hb : base b) (x : α) : b basis_for (x ⊔ b) := 
+by {rw sup_comm, exact hb.basis_sup_left x}
 
 lemma basis_for.eq_of_le_indep (h : b basis_for x) (hy : indep y) (hby : b ≤ y) (hyx : y ≤ x) : 
   b = y := (h.2.2 _ hy hyx hby)
@@ -191,29 +196,38 @@ lemma basis_for.eq_of_le_indep (h : b basis_for x) (hy : indep y) (hby : b ≤ y
 lemma basis_for.not_indep_of_lt (hb : b basis_for x) (hby : b < y) (hyx : y ≤ x) : ¬ indep y := 
 λ h, hby.ne (hb.eq_of_le_indep h hby.le hyx)
 
-lemma basis_for.basis_for_of_le (hi : i basis_for x) (hiy : i ≤ y) (hyx : y ≤ x) : i basis_for y := 
+lemma basis_for.basis_of_le (hi : i basis_for x) (hiy : i ≤ y) (hyx : y ≤ x) : i basis_for y := 
 hi.indep.basis_for hiy (λ j hj hjy hij, hi.eq_of_le_indep hj hij (hjy.trans hyx))
 
-lemma basis_for.basis_for_sup_of_le (hi : i basis_for x) (hyx : y ≤ x) : i basis_for (i ⊔ y) := 
-hi.basis_for_of_le le_sup_left (sup_le hi.le hyx)
+lemma basis_for.basis_sup_of_le (hi : i basis_for x) (hyx : y ≤ x) : i basis_for (i ⊔ y) := 
+hi.basis_of_le le_sup_left (sup_le hi.le hyx)
+
+lemma basis_of_basis_sup_of_le (hi : i basis_for x ⊔ i) (hix : i ≤ x) : i basis_for x :=
+hi.indep.basis_for hix (λ j hj hjx hij, hi.eq_of_le_indep hj hij (le_sup_of_le_left hjx))
+
+lemma indep.not_basis_of_lt (hi : indep i) (hji : j < i) : ¬ j basis_for i := 
+λ h, h.not_indep_of_lt hji rfl.le hi 
+
+lemma basis_for.not_basis_of_lt (hi : i basis_for x) (hji : j < i) : ¬ j basis_for x :=
+λ h, h.not_indep_of_lt hji hi.le hi.indep
 
 lemma basis_for.indep_of_le (hb : b basis_for x) (hib : i ≤ b)  : indep i := 
 (hb.indep).indep_of_le hib 
 
-lemma base.basis_for_top (hb : base b) : b basis_for ⊤ := 
+lemma base.basis_top (hb : base b) : b basis_for ⊤ := 
 hb.indep.basis_for le_top (λ j hj hbj h, hb.eq_of_le_indep hj h) 
 
-lemma basis_for_top_iff : b basis_for ⊤ ↔ base b := 
-⟨λ h, h.indep.base (λ j hj hbj, h.eq_of_le_indep hj hbj le_top), base.basis_for_top⟩
+lemma basis_top_iff : b basis_for ⊤ ↔ base b := 
+⟨λ h, h.indep.base (λ j hj hbj, h.eq_of_le_indep hj hbj le_top), base.basis_top⟩
 
-lemma basis_for_bot_iff : x basis_for ⊥ ↔ x = ⊥ :=
-⟨λ h, le_bot_iff.mp h.le, by {rintro rfl, exact (bot_indep α).basis_for_self}⟩ 
+lemma basis_bot_iff : x basis_for ⊥ ↔ x = ⊥ :=
+⟨λ h, le_bot_iff.mp h.le, by {rintro rfl, exact (bot_indep α).basis_self}⟩ 
 
-lemma basis_for.basis_for_sup_self (hi : i basis_for x) : i basis_for (x ⊔ i) := 
+lemma basis_for.basis_sup_self (hi : i basis_for x) : i basis_for (x ⊔ i) := 
 hi.indep.basis_for le_sup_right 
   (λ j hj hjix hij, (hi.eq_of_le_indep hj hij (by {rwa [sup_eq_left.mpr hi.le] at hjix})))
 
-lemma indep.eq_of_basis_for (hi : indep i) (hj : j basis_for i) : i = j :=
+lemma indep.eq_of_basis (hi : indep i) (hj : j basis_for i) : i = j :=
 (hj.eq_of_le_indep hi hj.le rfl.le).symm
 
 end basis
@@ -245,13 +259,13 @@ lemma canopy_for.not_spanning_of_lt (hs : s canopy_for x) (hts : t < s) (hxt : x
 
 lemma canopy_for.canopy_for_of_le (hs : s canopy_for x) (hys : y ≤ s) (hxy : x ≤ y) : 
   s canopy_for y := 
-@basis_for.basis_for_of_le αᵒᵈ _ _ _ _ hs hys hxy
+@basis_for.basis_of_le αᵒᵈ _ _ _ _ hs hys hxy
 
 lemma canopy_for_top_iff : x canopy_for ⊤ ↔ x = ⊤ :=
-@basis_for_bot_iff αᵒᵈ _ _
+@basis_bot_iff αᵒᵈ _ _
 
 lemma canopy_for_bot_iff : b canopy_for ⊥ ↔ base b := 
-@basis_for_top_iff αᵒᵈ _ _
+@basis_top_iff αᵒᵈ _ _
 
 end canopy
 
