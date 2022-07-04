@@ -225,8 +225,6 @@ lemma set.finite.exists_minimal_mem [partial_order α] {s : set α} (hs : s.none
 
 end finite 
 
-
-
 section complete 
 
 variables [complete_lattice α] {a : α} {S T : set α} {f : α → α}
@@ -281,29 +279,98 @@ end
 lemma Sup_diff_singleton_sup_of_mem_eq (ha : a ∈ S) : (Sup (S \ {a})) ⊔ a = Sup S :=
 @Inf_diff_singleton_inf_of_mem_eq αᵒᵈ _ _ _ ha
 
-
 lemma supr_bool_eq' {f : bool → α} (i : bool) : (⨆ j, f j) = f i ⊔ f (!i) := 
 by {rw supr_bool_eq, cases i; simp [sup_comm]}
 
 lemma infi_bool_eq' {f : bool → α} (i : bool) : (⨅ j, f j) = f i ⊓ f (!i) := 
 @supr_bool_eq' αᵒᵈ _ _ _
 
-open subtype 
-
-instance {a : α} : complete_lattice (set.Iic a) := {
-Sup := λ S, ⟨complete_lattice.Sup (coe '' S), 
-  (Sup_le (λ _ ⟨⟨b,hb⟩,hbS, rfl⟩, hb) : complete_lattice.Sup (coe '' S) ≤ a)⟩,
-Inf := λ S, ⟨a ⊓ (complete_lattice.Inf (coe '' S)), (inf_le_left : a ⊓ _ ≤ a)⟩,
-le_Sup := λ _ _ h, coe_le_coe.mp (le_Sup (set.mem_image_of_mem _ h)),
-Sup_le := λ _ _ h, coe_le_coe.mp (Sup_le (λ y ⟨z,hz1, hz2⟩, 
-  by {rw [←hz2, coe_le_coe], exact h z hz1})), 
-Inf_le := λ S x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le ⟨x,h,rfl⟩)), 
-le_Inf := λ S x h, le_inf x.2 (le_Inf (λ b ⟨z,hz1,hz2⟩, 
-  by {rw [←hz2, coe_le_coe], exact h z hz1})),
-  
-.. (infer_instance : lattice (set.Iic a)),
-.. (infer_instance : bounded_order (set.Iic a))
-}
 
 
 end complete 
+
+section intervals
+
+open set subtype 
+
+instance [complete_lattice α] {a : α} : complete_lattice (Iic a) := {
+Sup := λ S, ⟨_, (Sup_le (λ _ ⟨⟨_,hb⟩,_,rfl⟩, hb) : complete_lattice.Sup (coe '' S) ≤ a)⟩,
+Inf := λ S, ⟨_, @inf_le_left _ _ a (complete_lattice.Inf (coe '' S))⟩,
+le_Sup := λ _ _ h, coe_le_coe.mp (le_Sup (mem_image_of_mem _ h)),
+Sup_le := λ _ _ h, coe_le_coe.mp (Sup_le (by {rintros y ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)})),
+Inf_le := λ _ x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le ⟨x,h,rfl⟩)), 
+le_Inf := λ _ x h, coe_le_coe.mp (le_inf x.2 
+  (le_Inf (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
+.. (infer_instance : lattice (set.Iic a)),
+.. (infer_instance : bounded_order (set.Iic a)) }
+
+instance [complete_lattice α] {a : α} : complete_lattice (Ici a) := 
+{ Sup := λ S, ⟨_, (@le_sup_left _ _ a (complete_lattice.Sup (coe '' S)))⟩,
+  Inf := λ S, ⟨complete_lattice.Inf (coe '' S), (le_Inf (λ _ ⟨⟨_,hb⟩,_,rfl⟩, hb))⟩,
+  Inf_le := λ _ _ h, coe_le_coe.mp (Inf_le (mem_image_of_mem _ h)),
+  le_Inf := λ _ _ h, coe_le_coe.mp (le_Inf (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)})),
+  le_Sup := λ _ x h, coe_le_coe.mp (le_sup_of_le_right (le_Sup ⟨x,h,rfl⟩)), 
+  Sup_le := λ _ x h, coe_le_coe.mp  
+    (sup_le x.2 (Sup_le (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
+.. (infer_instance : lattice (set.Ici a)),
+.. (infer_instance : bounded_order (set.Ici a)) }
+
+@[reducible] def Icc_complete_lattice [complete_lattice α] {a b : α} (hab : a ≤ b) : 
+  complete_lattice (Icc a b) := 
+{ Sup := λ S, ⟨a ⊔ Sup (coe '' S), 
+    ⟨le_sup_left, sup_le hab (Sup_le (by {rintros _ ⟨⟨_,h⟩,_,rfl⟩, exact h.2}))⟩ ⟩,
+  Inf := λ S, ⟨b ⊓ Inf (coe '' S), 
+    ⟨le_inf hab (le_Inf (by {rintros _ ⟨⟨_,h⟩,_,rfl⟩, exact h.1})), inf_le_left⟩⟩, 
+  Inf_le := λ _ x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le (⟨x,h,rfl⟩))),
+  le_Inf := λ _ x h, coe_le_coe.mp 
+    (le_inf x.2.2 (le_Inf (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
+  le_Sup := λ _ x h, coe_le_coe.mp (le_sup_of_le_right (le_Sup ⟨x,h,rfl⟩)), 
+  Sup_le := λ _ x h, 
+    (sup_le x.2.1 (Sup_le (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
+.. (infer_instance : lattice (set.Icc a b)),
+.. (Icc.bounded_order hab) }
+
+@[simp] lemma set.Iic.coe_Sup [complete_lattice α] {a : α} {S : set (Iic a)} : 
+  ((Sup S : Iic a) : α) = Sup ((coe : Iic a → α) '' S) := rfl 
+
+@[simp] lemma set.Iic.coe_Inf [complete_lattice α] {a : α} {S : set (Iic a)} : 
+  ((Inf S : Iic a) : α) = a ⊓ Inf ((coe : Iic a → α) '' S) := rfl 
+
+lemma set.Iic.coe_Inf_nonempty_eq [complete_lattice α] {a : α} {S : set (Iic a)} (hS : S.nonempty) :
+  ((Inf S : Iic a) : α) = Inf ((coe : Iic a → α) '' S) := by 
+{ rw [set.Iic.coe_Inf, inf_eq_right], 
+  exact exists.elim hS (λ ⟨x,hxa⟩ hx, le_trans (Inf_le (⟨⟨x,hxa⟩,hx,rfl⟩)) hxa)}
+
+@[simp] lemma set.Iic.coe_sup [semilattice_sup α] {a : α} {x y : Iic a} : 
+  (↑(x ⊔ y) : α) = (↑x ⊔ ↑y) := rfl 
+
+@[simp] lemma set.Iic.coe_inf [semilattice_inf α] {a : α} {x y : Iic a} : 
+  (↑(x ⊓ y) : α) = (↑x ⊓ ↑y) := rfl 
+
+@[simp] lemma set.Ici.coe_inf [semilattice_inf α] {a : α} {x y : Iic a} : 
+  (↑(x ⊓ y) : α) = (↑x ⊓ ↑y) := rfl 
+
+@[simp] lemma set.Ici.coe_sup [semilattice_sup α] {a : α} {x y : Iic a} : 
+  (↑(x ⊔ y) : α) = (↑x ⊔ ↑y) := rfl 
+
+@[simp] lemma set.Icc.coe_inf [semilattice_inf α] {a : α} {x y : Iic a} : 
+  (↑(x ⊓ y) : α) = (↑x ⊓ ↑y) := rfl 
+
+@[simp] lemma set.Icc.coe_sup [semilattice_sup α] {a : α} {x y : Iic a} : 
+  (↑(x ⊔ y) : α) = (↑x ⊔ ↑y) := rfl 
+
+@[simp] lemma set.Ioc.coe_inf [semilattice_inf α] {a : α} {x y : Iic a} : 
+  (↑(x ⊓ y) : α) = (↑x ⊓ ↑y) := rfl 
+
+@[simp] lemma set.Ioc.coe_sup [semilattice_sup α] {a : α} {x y : Iic a} : 
+  (↑(x ⊔ y) : α) = (↑x ⊔ ↑y) := rfl 
+
+@[simp] lemma set.Ico.coe_inf [semilattice_inf α] {a : α} {x y : Iic a} : 
+  (↑(x ⊓ y) : α) = (↑x ⊓ ↑y) := rfl 
+
+@[simp] lemma set.Ico.coe_sup [semilattice_sup α] {a : α} {x y : Iic a} : 
+  (↑(x ⊔ y) : α) = (↑x ⊔ ↑y) := rfl 
+
+-- etc etc... PR this? 
+
+end intervals 
