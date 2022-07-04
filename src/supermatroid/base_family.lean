@@ -97,6 +97,8 @@ hb.spanning.sup_right_spanning _
 lemma base.sup_left_spanning (hb : base b) (x : α) : spanning (x ⊔ b) := 
 hb.spanning.sup_left_spanning _
 
+lemma indep_iff_le_base : indep i ↔ ∃ b, base b ∧ i ≤ b := iff.rfl 
+
 lemma indep.indep_of_le (hi : indep i) (hji : j ≤ i) : indep j := 
 exists.elim hi (λ b hb, ⟨b, ⟨hb.1, hji.trans hb.2⟩⟩)
 
@@ -174,6 +176,8 @@ lemma basis_for.indep (h : b basis_for x) : indep b := h.1
 
 lemma basis_for.le (h : b basis_for x) : b ≤ x := h.2.1
 
+lemma basis_iff : i basis_for x ↔ indep i ∧ i ≤ x ∧ ∀ j, indep j → j ≤ x → i ≤ j → i = j := iff.rfl
+
 lemma indep.basis_for (hi : indep i) (hix : i ≤ x) (h : ∀ j, indep j → j ≤ x → i ≤ j → i = j) : 
   i basis_for x :=
 ⟨hi,  hix, h⟩
@@ -192,6 +196,9 @@ by {rw sup_comm, exact hb.basis_sup_left x}
 
 lemma basis_for.eq_of_le_indep (h : b basis_for x) (hy : indep y) (hby : b ≤ y) (hyx : y ≤ x) : 
   b = y := (h.2.2 _ hy hyx hby)
+
+lemma basis_antichain (x : α) : is_antichain (≤) {i | i basis_for x} := 
+λ i hi j hj hne hle, hne (hi.eq_of_le_indep hj.indep hle hj.le) 
 
 lemma basis_for.not_indep_of_lt (hb : b basis_for x) (hby : b < y) (hyx : y ≤ x) : ¬ indep y := 
 λ h, hby.ne (hb.eq_of_le_indep h hby.le hyx)
@@ -250,12 +257,16 @@ lemma canopy_for.spanning (h : s canopy_for x) : spanning s := h.1
 
 lemma canopy_for.le (h : s canopy_for x) : x ≤ s := h.2.1 
 
-lemma canopy_for.eq_of_spanning_le (hs : s canopy_for x) (hxt : x ≤ t) (hts : t ≤ s) 
-  (ht : spanning t) : t = s := (hs.2.2 _ ht hxt hts).symm
+lemma canopy_for.eq_of_spanning_le (hs : s canopy_for x) (ht : spanning t) (hxt : x ≤ t) 
+(hts : t ≤ s) : 
+  t = s := (hs.2.2 _ ht hxt hts).symm
+
+lemma canopy_antichain (x : α) : is_antichain (≤) {s | s canopy_for x} := 
+λ s hs t ht hne hle, hne (ht.eq_of_spanning_le hs.spanning hs.le hle)
 
 lemma canopy_for.not_spanning_of_lt (hs : s canopy_for x) (hts : t < s) (hxt : x ≤ t):
   ¬ spanning t := 
-λ h, hts.ne (hs.eq_of_spanning_le hxt hts.le h)
+λ h, hts.ne (hs.eq_of_spanning_le h hxt hts.le)
 
 lemma canopy_for.canopy_for_of_le (hs : s canopy_for x) (hys : y ≤ s) (hxy : x ≤ y) : 
   s canopy_for y := 
@@ -282,6 +293,32 @@ lemma spanning.indep_dual (hs : spanning s) : indep (to_dual s) := hs
 lemma base.to_dual (hb : base b) : base (to_dual b) := hb 
 
 end dual 
+
+section span_closure
+
+/-- `x` spans `y` if every basis for `x` is a basis for `y ⊔ x` -/
+def spans (x y : α) := ∀ i, i basis_for x → i basis_for (y ⊔ x)
+
+infix ` spans `:50 := spans
+
+def closure (x : α) : α := Sup {y | ∀ i, i basis_for x → i basis_for (y ⊔ x)}
+
+lemma spans.basis_for (hxy : x spans y) (hix : i basis_for x) : i basis_for (y ⊔ x) := hxy _ hix 
+
+lemma spans_iff_forall : (x spans y) ↔ ∀ i, i basis_for x → i basis_for (y ⊔ x) := iff.rfl 
+
+lemma le_closure_self (x : α) : x ≤ closure x := le_Sup (by simp)
+
+@[simp] lemma closure_top_eq (α : Type u) [base_family α ]: closure (⊤ : α) = ⊤ := 
+  eq_top_iff.mpr (le_closure_self _)
+
+lemma spans_self (x : α) : x spans x := λ i hi, by rwa sup_idem 
+
+/-- `x` controls `y` if every canopy for `x` is a canopy for `y ⊓ x`-/
+def controls (x y : α) := ∀ s, s canopy_for x → s canopy_for y ⊓ x
+
+
+end span_closure 
 
 section circuit_hyperplane
 

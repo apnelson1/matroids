@@ -11,16 +11,7 @@ section defs
 
 variables [base_family α] {i x y : α}
 
-/-- `x` spans `y` if every base for `x` is a base for `y ⊔ x` -/
-def spans (x y : α) := ∀ i, i basis_for x → i basis_for (y ⊔ x)
 
-infix ` spans `:50 := spans
-
-def closure (x : α) : α := Sup {y | ∀ i, i basis_for x → i basis_for (y ⊔ x)}
-
-lemma spans.basis_for (hxy : x spans y) (hix : i basis_for x) : i basis_for (y ⊔ x) := hxy _ hix 
-
-lemma spans_iff_forall : (x spans y) ↔ ∀ i, i basis_for x → i basis_for (y ⊔ x) := iff.rfl 
 
 end defs
 
@@ -78,11 +69,6 @@ lemma basis_for.basis_sup_of_basis (hx : i basis_for x) (hy : i basis_for y) :
   i basis_for (x ⊔ y) := 
 by {rw sup_eq_supr, exact basis_supr_of_forall (λ k, by {cases k; assumption})}
 
-lemma le_closure_self (x : α) : x ≤ closure x := le_Sup (by simp)
-
-@[simp] lemma closure_top_eq (α : Type u) [qmatroid α] : closure (⊤ : α) = ⊤ := 
-  eq_top_iff.mpr (le_closure_self _)
-
 lemma indep.basis_closure (hi : indep i) : i basis_for (closure i) := 
 begin
   rw [←sup_eq_left.mpr (le_closure_self i)], 
@@ -99,8 +85,6 @@ end
 lemma indep.basis_sup_of_le_closure (hi : indep i) (hxi : x ≤ closure i) : 
   i basis_for (i ⊔ x) :=
 hi.basis_closure.basis_of_le le_sup_left (sup_le (le_closure_self i) hxi)
-
-lemma spans_self (x : α) : x spans x := λ i hi, by rwa sup_idem 
 
 lemma spans_closure_self (x : α) : x spans (closure x) := 
 begin
@@ -294,7 +278,7 @@ lemma spans_Sup_of_forall (h : ∀ x ∈ S, a spans x) : a spans (Sup S) :=
 begin
   refine S.eq_empty_or_nonempty.elim (by {rintro rfl, simpa using spans_bot _}) (λ hS, _),
   convert @supr_spans_supr_of_forall α S _ (λ _, a) coe (λ ⟨x,hx⟩, h x hx), 
-  exact (@supr_const _ S _ _ hS.to_subtype).symm, 
+  exact (@supr_const _ S _ (hS.to_subtype) _).symm, 
   simp, 
 end 
 
@@ -464,27 +448,60 @@ lemma canopy_infi_of_forall [nonempty κ] {x : κ → α} (h : ∀ k, s canopy_f
   s canopy_for (⨅ k, x k) :=
 @basis_supr_of_forall αᵒᵈ _ _ _ _ _ h
 
-lemma closure_infi_eq_infi_closure_of_indep {i : κ → α} (h : indep (⨆ t, i t)) : 
-  (⨅ t, closure (i t)) = closure (⨅ t, i t) :=
-begin
-  refine (is_empty_or_nonempty κ).elim 
-    (λ h_empty, by simp_rw [@infi_of_empty _ _ _ h_empty, closure_top_eq]) (λ h_ne, _), 
-  obtain ⟨t₀⟩ := h_ne, 
-  refine le_antisymm _ (le_infi (λ t, closure_mono (infi_le _ _))), 
-  rw [←spans_iff_le_closure, spans_iff_exists], 
-  have h_indep := λ t, h.indep_of_le (le_supr _ t), 
-  refine ⟨_, (h.indep_of_le ((infi_le _ t₀).trans (le_supr _ _))).basis_for 
-    le_sup_right (λ k hk hk_le hle_k, hle_k.antisymm _), rfl.le⟩, 
+-- lemma closure_infi_eq_infi_closure_of_indep {i : κ → α} (h : indep (⨆ t, i t)) : 
+--   (⨅ t, closure (i t)) = closure (⨅ t, i t) :=
+-- begin
+--   refine (is_empty_or_nonempty κ).elim 
+--     (λ h_empty, by simp_rw [@infi_of_empty _ _ _ h_empty, closure_top_eq]) (λ h_ne, _), 
+--   obtain ⟨t₀⟩ := h_ne, 
+--   refine le_antisymm _ (le_infi (λ t, closure_mono (infi_le _ _))), 
+--   rw [←spans_iff_le_closure, spans_iff_exists], 
+--   have h_indep := λ t, h.indep_of_le (le_supr _ t), 
+--   refine ⟨_, (h.indep_of_le ((infi_le _ t₀).trans (le_supr _ _))).basis_for 
+--     le_sup_right (λ k hk hk_le hle_k, hle_k.antisymm _), rfl.le⟩, 
 
 
-  rw [sup_eq_left.mpr 
-    (le_infi (λ t, (infi_le _ _).trans (le_closure_self _)) : (⨅ t, i t) ≤ ⨅ t, closure (i t) ), 
-    le_infi_iff] at hk_le,  
-  simp_rw [←spans_iff_le_closure, spans_iff_forall] at hk_le, 
-  have hforall_b := λ t, (hk_le t (i t) (h_indep t).basis_self), clear hk_le, 
+--   rw [sup_eq_left.mpr 
+--     (le_infi (λ t, (infi_le _ _).trans (le_closure_self _)) : (⨅ t, i t) ≤ ⨅ t, closure (i t) ), 
+--     le_infi_iff] at hk_le,  
+--   simp_rw [←spans_iff_le_closure, spans_iff_forall] at hk_le, 
+--   have hforall_b := λ t, (hk_le t (i t) (h_indep t).basis_self), clear hk_le, 
 
-  sorry 
+--   sorry 
 
-end 
+-- end 
+
+section restriction 
+open subtype 
+instance : qmatroid (Iic a) := { 
+  basis_sup := λ _ _ _, by simpa using qmatroid.basis_sup _ _ _,  
+
+  basis_Sup_chain :=  
+  begin
+    rintros ⟨i,a⟩ C hC_chain hC_ne h,
+    
+    simp only [complete_lattice.Sup, mk_basis_iff], 
+    simp only [mem_Iic, basis_Iic_iff_coe_basis_coe, coe_mk, set_coe.forall] at h,
+    exact qmatroid.basis_Sup_chain i (coe '' C) 
+      (by {rintros _ ⟨⟨x,hxa⟩,hx,rfl⟩ _ ⟨⟨y,hya⟩,hy,rfl⟩ hne,
+        specialize hC_chain hx hy,
+        simp only [coe_mk, ne.def, mk_le_mk] at hne ⊢ hC_chain,
+        exact hC_chain (λ h_eq, hne (mk_eq_mk.mp h_eq))})      
+      (by simpa) 
+      (λ x ⟨⟨y,hy⟩, hyC, hyx⟩, by {rw ←hyx,exact h y hy hyC}),  
+  end ,
+  canopy_Inf_chain := 
+  begin
+    rintros ⟨s,a⟩ C hC_chain ⟨⟨x₀,hx₀a⟩, hx₀⟩ h,
+    obtain ⟨h₀,h₀',h₀''⟩ := h _ hx₀,
+    simp only [complete_lattice.Inf, canopy_for_iff, spanning_Iic_iff_exists_basis_le_coe, coe_mk, 
+      mk_le_mk, forall_exists_index, and_imp, set_coe.forall, mk_eq_mk, mem_Iic] at ⊢ h₀, 
+    refine ⟨h₀,inf_le_of_right_le _,_⟩, 
+    { sorry},
+    
+  end ,
+  ..(infer_instance : supermatroid (Iic a)) }
+
+end restriction 
 
 end qmatroid

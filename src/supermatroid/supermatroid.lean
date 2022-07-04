@@ -5,7 +5,7 @@ import .base_family
 
 /-! 
 This file defines `supermatroids`; these are nonempty antichains of `bases` in a modular lattice 
-that satisfy two axioms asserting the existence of bases under various conditions. 
+that satisfy two axioms asserting the existence of bases under various conditions.
 -/
 
 universes u v 
@@ -23,7 +23,7 @@ lemma indep.le_basis_of_le_of_finite [base_family α] [finite α] {i x : α} (hi
     (λ j ⟨⟨hj, hij,hjx⟩,hj_max⟩, 
      ⟨⟨hj,hjx, λ j' hj' hj'x hjj', hj_max j' ⟨hj',hij.trans hjj',hj'x⟩ hjj'⟩, hij⟩)
 
-/-- In a matroid on a finite lattice, supers for sets exist -/
+/-- In a matroid on a finite lattice, canopies for sets exist -/
 lemma spanning.super_of_le_of_le_of_finite [base_family α] [finite α] {s x : α} (hs : spanning s)
 (hxs : x ≤ s) :
   ∃ t, t canopy_for x ∧ t ≤ s := 
@@ -40,7 +40,7 @@ class supermatroid (α : Type u) extends base_family α, is_modular_lattice α :
   
 variables [supermatroid α] {a i j b b' s t x y z x' y' z' : α}
 
-/-- A base_family on a finite lattice that satisfies the middle axiom is a supermatroid family -/
+/-- A base_family on a finite lattice that satisfies the middle axiom is a supermatroid. -/
 noncomputable lemma supermatroid_of_finite {α : Type u} [base_family α] [finite α] 
 [is_modular_lattice α] 
 (h : ∀ (x y : α), indep x → spanning y → x ≤ y → ∃ b, base b ∧ x ≤ b ∧ b ≤ y) : 
@@ -175,9 +175,15 @@ instance : supermatroid αᵒᵈ :=
   (indep.exists_base_mid_of_le_spanning hs hi his).imp (λ b ⟨hb,hsb,hbi⟩, ⟨hb, hbi, hsb⟩), 
   λ i x hi hix, (spanning.canopy_le_of_le' hi hix).imp (λ a ⟨ha, hia⟩, ⟨ha, hia⟩)⟩
 
+lemma exists_canopy (x : α) : ∃ s, s canopy_for x := @exists_basis αᵒᵈ _ x
+
 /-- #### Spanning sets -/
 
 -- Need to rename the lemmas in this section to match their indep equivalents 
+
+lemma spanning.exists_base_mid_of_indep_le (hs : spanning s) (hi : indep i) (his : i ≤ s) :
+  ∃ b, base b ∧ b ≤ s ∧ i ≤ b :=
+@indep.exists_base_mid_of_le_spanning αᵒᵈ _ _ _ hs hi his  
 
 lemma spanning.base_lt_indep_le_of_not_base (hs : spanning s) (hs_nb : ¬base s) (hi : indep i) 
 (his : i ≤ s) : 
@@ -257,7 +263,6 @@ lemma canopy_for.eq_sup_base_both (hsx : s canopy_for x) (hsy : s canopy_for y) 
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b := 
 @basis_for.eq_inf_base_both αᵒᵈ _ _ _ _ hsx hsy 
 
-
 -- Probably this lemma is the right way to do duality. It might be that only semimodularity is needed... 
 
 lemma base.sup_canopy_of_inf_basis (hb : base b) (hbx : (x ⊓ b) basis_for x) : 
@@ -296,9 +301,8 @@ begin
   obtain ⟨b₁, hb₁, rfl, -⟩ := hj.exists_base, 
   obtain ⟨b₂, hb₂,hib₂, hb₂i⟩ := hi.exists_base_mid_of_le_sup_base hb₁, 
   rw [←hb₁.sup_canopy_iff_inf_basis] at hj,
-  have hb₁b₂ := hj.eq_of_spanning_le le_sup_left
-    (sup_le le_sup_left (hb₂i.trans (sup_le (le_sup_of_le_left hix) le_sup_right))) 
-    (hb₂.sup_left_spanning x),
+  have hb₁b₂ := hj.eq_of_spanning_le (hb₂.sup_left_spanning x) le_sup_left
+    (sup_le le_sup_left (hb₂i.trans (sup_le (le_sup_of_le_left hix) le_sup_right))),
   rw [←hb₁b₂, hb₂.sup_canopy_iff_inf_basis] at hj, 
   refine ⟨x ⊓ b₂, hj, (le_inf hix hib₂).lt_of_ne (λ h, hin (by rwa ←h at hj)),
     (inf_le_inf_left x hb₂i).trans _⟩, 
@@ -341,9 +345,6 @@ begin
   refine lt_of_le_of_lt (le_inf hij inf_le_left) 
     (inf_lt_inf_of_lt_of_sup_le_sup hlt (sup_le (sup_comm.subst hj'.le) le_sup_right)),
 end 
-
- 
- 
 
 lemma canopy_for.canopy_inf_mono (hsx : s canopy_for x) (ht : spanning t) (hts : t ≤ s) :
   t canopy_for (x ⊓ t) :=
