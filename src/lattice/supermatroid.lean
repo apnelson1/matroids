@@ -240,24 +240,23 @@ lemma canopy_for.eq_sup_super_both (hsx : s canopy_for x) (hsy : s canopy_for y)
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b :=
 @basis_for.eq_inf_base_both αᵒᵈ _ _ _ _ hsx hsy
 
-lemma eq_inf_basisall_of_basisall {x : κ → α} (h : ∀ k, i basis_for x k) : 
+lemma eq_inf_basis_forall_of_basis_forall {x : κ → α} (h : ∀ k, i basis_for x k) : 
   ∃ b, base b ∧ ∀ k, i = (x k) ⊓ b := 
 (is_empty_or_nonempty κ).elim (λ he, (exists_base α).imp (λ b hb, ⟨hb, he.elim⟩ )) 
   (λ ⟨k⟩, (h k).indep.imp (λ b hb, ⟨hb.1, λ k', (h k').eq_inf_base_of_le_base hb.1 hb.2⟩))
 
-lemma eq_inf_basisall_of_basisall_mem {S : set α} (hS : ∀ x ∈ S, i basis_for x) :
+lemma eq_inf_basis_forall_of_basis_forall_mem {S : set α} (hS : ∀ x ∈ S, i basis_for x) :
   ∃ b, base b ∧ ∀ x ∈ S, i = x ⊓ b :=
-(@eq_inf_basisall_of_basisall α S _ i coe (λ ⟨x,hx⟩, hS x hx)).imp 
+(@eq_inf_basis_forall_of_basis_forall α S _ i coe (λ ⟨x,hx⟩, hS x hx)).imp 
   (λ b hb, ⟨hb.1, λ x hx, (hb.2 ⟨x,hx⟩)⟩)
 
-lemma eq_sup_basisall_of_canopy_forall {x : κ → α} (h : ∀ k, s canopy_for x k) :
+lemma eq_sup_basis_forall_of_canopy_forall {x : κ → α} (h : ∀ k, s canopy_for x k) :
   ∃ b, base b ∧ ∀ k, s = x k ⊔ b :=
-@eq_inf_basisall_of_basisall αᵒᵈ κ _ _ _ h
+@eq_inf_basis_forall_of_basis_forall αᵒᵈ κ _ _ _ h
 
-lemma eq_sup_basisall_of_canopy_forall_mem {S : set α} (hS : ∀ x ∈ S, s canopy_for x) : 
+lemma eq_sup_basis_forall_of_canopy_forall_mem {S : set α} (hS : ∀ x ∈ S, s canopy_for x) : 
   ∃ b, base b ∧ ∀ x ∈ S, s = x ⊔ b :=
-@eq_inf_basisall_of_basisall_mem αᵒᵈ _ _ S hS
-
+@eq_inf_basis_forall_of_basis_forall_mem αᵒᵈ _ _ S hS
 
 lemma canopy_for.eq_sup_base_both (hsx : s canopy_for x) (hsy : s canopy_for y) : 
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b := 
@@ -293,21 +292,26 @@ lemma base.sup_canopy_iff_inf_basis (hb : base b):
   (x ⊔ b) canopy_for x ↔ (x ⊓ b) basis_for x := 
 ⟨@base.sup_canopy_of_inf_basis αᵒᵈ _ _ _ hb, hb.sup_canopy_of_inf_basis⟩
 
--- This lemma is the independence augmentation axiom in the restriction to `x`
-lemma indep.lt_basis_le_sup_of_not_basis (hi : indep i) (hin : ¬ (i basis_for x)) 
-(hj : j basis_for x) (hix : i ≤ x) :
-  ∃ i', i' basis_for x ∧ i < i' ∧ i' ≤ i ⊔ j :=
+
+lemma indep.le_basis_le_sup (hi : indep i) (hj : j basis_for x) (hix : i ≤ x) : 
+  ∃ i', i' basis_for x ∧ i ≤ i' ∧ i' ≤ i ⊔ j :=
 begin
-  obtain ⟨b₁, hb₁, rfl, -⟩ := hj.exists_base, 
+  obtain ⟨b₁,hb₁,rfl,-⟩ := hj.exists_base, 
   obtain ⟨b₂, hb₂,hib₂, hb₂i⟩ := hi.exists_base_mid_of_le_sup_base hb₁, 
   rw [←hb₁.sup_canopy_iff_inf_basis] at hj,
   have hb₁b₂ := hj.eq_of_spanning_le (hb₂.sup_left_spanning x) le_sup_left
     (sup_le le_sup_left (hb₂i.trans (sup_le (le_sup_of_le_left hix) le_sup_right))),
   rw [←hb₁b₂, hb₂.sup_canopy_iff_inf_basis] at hj, 
-  refine ⟨x ⊓ b₂, hj, (le_inf hix hib₂).lt_of_ne (λ h, hin (by rwa ←h at hj)),
-    (inf_le_inf_left x hb₂i).trans _⟩, 
-  rw [inf_comm, sup_inf_assoc_of_le _ hix, inf_comm], 
+  exact ⟨x ⊓ b₂, hj, le_inf hix hib₂, (inf_le_inf_left x hb₂i).trans 
+    (by rw [inf_comm, sup_inf_assoc_of_le _ hix, inf_comm])⟩, 
 end 
+
+-- This lemma is the independence augmentation axiom in the restriction to `x`
+lemma indep.lt_basis_le_sup_of_not_basis (hi : indep i) (hin : ¬ (i basis_for x)) 
+(hj : j basis_for x) (hix : i ≤ x) :
+  ∃ i', i' basis_for x ∧ i < i' ∧ i' ≤ i ⊔ j :=
+(hi.le_basis_le_sup hj hix).imp (λ b ⟨hb, hib, h⟩, 
+  ⟨hb, hib.lt_of_ne (λ hib, hin (hib.substr hb)), h⟩) 
 
 /-- This lemma is saying that `x ⊔ i` is a canopy for `x` in the restriction to `x ⊔ i` --/
 lemma sup_eq_of_basis_basis_basis (hi_inf : x ⊓ i basis_for x) (hi_sup : i basis_for x ⊔ i) 
@@ -330,6 +334,15 @@ begin
   rw [inf_assoc, @inf_comm _ _ _ x, inf_sup_self, inf_comm, @inf_comm _ _ i₁] at hlt, 
   exact hi_inf.not_indep_of_lt hlt inf_le_left (hi₁.indep.inf_left_indep _), 
 end 
+
+lemma spanning.ge_canopy_ge_inf (hs : spanning s) (ht : t canopy_for x) (hxs : x ≤ s) : 
+  ∃ s', s' canopy_for x ∧ s' ≤ s ∧ s ⊓ t ≤ s' :=
+@indep.le_basis_le_sup αᵒᵈ _ _ _ _ hs ht hxs
+
+lemma spanning.gt_canopy_ge_inf_of_not_canopy (hs : spanning s) (hsn : ¬ (s canopy_for x)) 
+(ht : t canopy_for x) (hxs : x ≤ s) :
+  ∃ s', s' canopy_for x ∧ s' < s ∧ s ⊓ t ≤ s' :=
+@indep.lt_basis_le_sup_of_not_basis αᵒᵈ _ _ _ _ hs hsn ht hxs
 
 lemma basis_for.basis_sup_mono (hix : i basis_for x) (hj : indep j) (hij : i ≤ j) :
   j basis_for (x ⊔ j) :=

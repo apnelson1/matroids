@@ -293,16 +293,16 @@ section intervals
 
 open set subtype 
 
-instance [complete_lattice α] {a : α} : complete_lattice (Iic a) := {
-Sup := λ S, ⟨_, (Sup_le (λ _ ⟨⟨_,hb⟩,_,rfl⟩, hb) : complete_lattice.Sup (coe '' S) ≤ a)⟩,
-Inf := λ S, ⟨_, @inf_le_left _ _ a (complete_lattice.Inf (coe '' S))⟩,
-le_Sup := λ _ _ h, coe_le_coe.mp (le_Sup (mem_image_of_mem _ h)),
-Sup_le := λ _ _ h, coe_le_coe.mp (Sup_le (by {rintros y ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)})),
-Inf_le := λ _ x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le ⟨x,h,rfl⟩)), 
-le_Inf := λ _ x h, coe_le_coe.mp (le_inf x.2 
+instance [complete_lattice α] {a : α} : complete_lattice (Iic a) := 
+{ Sup := λ S, ⟨_, (Sup_le (λ _ ⟨⟨_,hb⟩,_,rfl⟩, hb) : complete_lattice.Sup (coe '' S) ≤ a)⟩,
+  Inf := λ S, ⟨_, @inf_le_left _ _ a (complete_lattice.Inf (coe '' S))⟩,
+  le_Sup := λ _ _ h, coe_le_coe.mp (le_Sup (mem_image_of_mem _ h)),
+  Sup_le := λ _ _ h, coe_le_coe.mp (Sup_le (by {rintros y ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)})),
+  Inf_le := λ _ x h, coe_le_coe.mp (inf_le_of_right_le (Inf_le ⟨x,h,rfl⟩)), 
+  le_Inf := λ _ x h, coe_le_coe.mp (le_inf x.2 
   (le_Inf (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
-.. (infer_instance : lattice (set.Iic a)),
-.. (infer_instance : bounded_order (set.Iic a)) }
+  .. (infer_instance : lattice (set.Iic a)),
+  .. (infer_instance : bounded_order (set.Iic a)) }
 
 instance [complete_lattice α] {a : α} : complete_lattice (Ici a) := 
 { Sup := λ S, ⟨_, (@le_sup_left _ _ a (complete_lattice.Sup (coe '' S)))⟩,
@@ -312,8 +312,8 @@ instance [complete_lattice α] {a : α} : complete_lattice (Ici a) :=
   le_Sup := λ _ x h, coe_le_coe.mp (le_sup_of_le_right (le_Sup ⟨x,h,rfl⟩)), 
   Sup_le := λ _ x h, coe_le_coe.mp  
     (sup_le x.2 (Sup_le (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
-.. (infer_instance : lattice (set.Ici a)),
-.. (infer_instance : bounded_order (set.Ici a)) }
+  .. (infer_instance : lattice (set.Ici a)),
+  .. (infer_instance : bounded_order (set.Ici a)) }
 
 @[reducible] def Icc_complete_lattice [complete_lattice α] {a b : α} (hab : a ≤ b) : 
   complete_lattice (Icc a b) := 
@@ -327,8 +327,8 @@ instance [complete_lattice α] {a : α} : complete_lattice (Ici a) :=
   le_Sup := λ _ x h, coe_le_coe.mp (le_sup_of_le_right (le_Sup ⟨x,h,rfl⟩)), 
   Sup_le := λ _ x h, 
     (sup_le x.2.1 (Sup_le (by {rintros _ ⟨z,p,rfl⟩, exact coe_le_coe.mpr (h z p)}))),
-.. (infer_instance : lattice (set.Icc a b)),
-.. (Icc.bounded_order hab) }
+  .. (infer_instance : lattice (set.Icc a b)),
+  .. (Icc.bounded_order hab) }
 
 @[simp] lemma set.Iic.coe_Sup [complete_lattice α] {a : α} {S : set (Iic a)} : 
   ((Sup S : Iic a) : α) = Sup ((coe : Iic a → α) '' S) := rfl 
