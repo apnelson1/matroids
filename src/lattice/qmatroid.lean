@@ -375,7 +375,7 @@ end
 private lemma canopy_infi_bool {x : bool → α} (h_can : ∀ k, s canopy_for (x k)) : 
   s canopy_for (⨅ k, x k) :=
 begin
-  obtain ⟨b,hb, (hsb : ∀ k, s = x k ⊔ b)⟩ := eq_sup_basisall_of_canopy_forall h_can, 
+  obtain ⟨b,hb, (hsb : ∀ k, s = x k ⊔ b)⟩ := eq_sup_basis_forall_of_canopy_forall h_can, 
 
   have h_bas := λ k, hb.sup_canopy_iff_inf_basis.mp ((hsb k).subst (h_can k)),
 
@@ -444,6 +444,7 @@ section minor
 
 open subtype
 
+-- False, even for matroids; the RHS has 'loops
 lemma ugh {i a x : α} (hia : i basis_for a) (hax : a ≤ x) : 
   indep (⟨x,hax⟩ : Ici a) ↔ indep (⟨x,hia.le.trans hax⟩ : Ici i) :=
 begin
