@@ -1,8 +1,5 @@
-import tactic 
-import order.lattice_intervals
-import order.rel_iso
+import data.fin.basic
 
-noncomputable theory 
-
-variables {α β : Type*}
-
+example {α : Type} [preorder α] {P : α → Prop} {n : ℕ} {f : fin n.succ → α} (hf : monotone f) 
+(hP : ∀ (a b : α), a ≤ b → P a → P b) (h0 : P (f 0)) : P (f (fin.last n)) := 
+by {}

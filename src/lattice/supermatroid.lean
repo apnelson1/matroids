@@ -1,7 +1,8 @@
 /-
 Copyright stuff
 -/
-import .base_family
+import .base_family 
+import data.list.sort 
 
 /-! 
 This file defines `supermatroids`; these are nonempty antichains of `bases` in a modular lattice 
@@ -231,6 +232,9 @@ begin
     (hi.eq_of_le_indep (hb'.inf_left_indep x) (le_inf inf_le_left hxb') inf_le_left).symm⟩, 
 end 
 
+lemma exists_base_inf_basis (x : α) : ∃ b, base b ∧ x ⊓ b basis_for x := 
+let ⟨i,hi⟩ := exists_basis x in hi.exists_base.imp (λ b ⟨hb,hib,_⟩, ⟨hb, hib ▸ hi⟩)
+  
 lemma basis_for.eq_inf_base_both (hix : i basis_for x) (hiy : i basis_for y) : 
   ∃ b, base b ∧ i = x ⊓ b ∧ i = y ⊓ b :=
 hix.indep.imp (λ b hb, ⟨hb.1, hix.eq_inf_base_of_le_base hb.1 hb.2, 
@@ -261,6 +265,10 @@ lemma eq_sup_basis_forall_of_canopy_forall_mem {S : set α} (hS : ∀ x ∈ S, s
 lemma canopy_for.eq_sup_base_both (hsx : s canopy_for x) (hsy : s canopy_for y) : 
   ∃ b, base b ∧ s = x ⊔ b ∧ s = y ⊔ b := 
 @basis_for.eq_inf_base_both αᵒᵈ _ _ _ _ hsx hsy 
+
+lemma canopy_for.exists_base (hs : s canopy_for x) : 
+  ∃ b, base b ∧ s = x ⊔ b ∧ ∀ b', base b' → b' ≤ x ⊔ b → x ⊔ b' = x ⊔ b := 
+@basis_for.exists_base αᵒᵈ _ _ _ hs 
 
 -- Probably this lemma is the right way to do duality. It might be that only semimodularity is needed... 
 
@@ -362,5 +370,69 @@ end
 lemma canopy_for.canopy_inf_mono (hsx : s canopy_for x) (ht : spanning t) (hts : t ≤ s) :
   t canopy_for (x ⊓ t) :=
 @basis_for.basis_sup_mono αᵒᵈ _ _ _ _ hsx ht hts
+
+ 
+
+lemma le_basis_nested {n : ℕ} {X : list α} (h : X.sorted (≤)) : 
+  ∃ b, base b ∧ ∀ x ∈ X, x ⊓ b basis_for x :=
+begin
+  obtain (rfl | ⟨a,X⟩) := X, 
+  exact (exists_base α).imp (λ b hb, ⟨hb, λ x hx, (list.not_mem_nil _ hx).elim⟩),  
+
+
+end 
+  -- obtain (rfl | n) := n, 
+  -- exact (exists_base α).imp (λ b hb, ⟨hb, fin_zero_elim⟩),
+
+  -- suffices hwin : ∀ (y : ℕ → α), monotone y → (∃ m, ∀ i, m ≤ i → y i = y m) → 
+  --   ∃ b, base b ∧ ∀ i, y i ⊓ b basis_for y i, 
+  -- { have h' := hwin (λ i, x ⟨min i n, (min_le_right _ _).trans_lt (lt_add_one _) ⟩)
+  --   (λ i j hij, (em (j ≤ n)).elim (λ hjn, 
+  --     by {have := hij.trans hjn, 
+  --     refine h (subtype.mk_le_mk.mpr _), convert hij; rwa min_eq_left}) (λ h, by {}))
+  --   ⟨n, λ i hni, by simp [min_eq_right hni]⟩,
+  --   exact h'.imp (λ b ⟨hb,hbx⟩, ⟨hb, λ ⟨i,hi⟩, 
+  --     by {rwa nat.lt_succ_iff at hi, convert hbx i; rwa min_eq_left, }⟩) },  
+  
+  -- induction n with k hk,
+  -- exact (exists_base α).imp (λ b hb, ⟨hb, fin_zero_elim⟩),
+  -- obtain ⟨b₀,hb₀,hxb₀⟩ := @hk (λ i, x i) (λ i j hij, h (by simpa : (i : fin k.succ) ≤ j)), 
+  -- dsimp only at hxb₀, 
+
+  -- obtain (rfl | k) := k, 
+  --   exact (exists_base_inf_basis (x 0)).imp (λ b ⟨hb,hxb⟩, ⟨hb, λ i, by rwa fin.eq_zero i⟩),
+  
+  -- have := hxb₀ ⟨k, lt_add_one k⟩, dsimp at this, 
+  -- have := h (sorry : (⟨k,_⟩ : fin (k+1+1)) ≤ ⟨k+1,_⟩), 
+
+
+  -- have := (hxb₀ (fin.last _)).indep.le_basis_of_le (inf_le_left.trans _), 
+
+
+
+  -- cases n, exact (exists_base α).imp (λ b i, fin_zero_elim),
+  -- suffices h₀ : ∀ (k : fin n.succ), ∃ b, ∀ i, i ≤ k → (x i ⊓ b) basis_for x i, 
+  --   from (h₀ (fin.last n)).imp (λ b hb i, hb _ (fin.le_last i)),
+  -- intro k, 
+  -- refine fin.induction 
+  --   ((exists_base_inf_basis (x 0)).imp (λ b ⟨hb,hbx⟩ i hi, by rwa hi.antisymm (fin.zero_le _))) _ k, 
+  -- rintros i ⟨b₀,hb₀⟩, 
+  
+
+
+  
+  
+  
+
+
+  
+
+lemma le_basis₂ {x y : α} (hxy : x ≤ y) : ∃ b, x ⊓ b basis_for x ∧ y ⊓ b basis_for y := 
+begin
+  obtain ⟨i,hi⟩ := exists_basis x, 
+  obtain ⟨j,hj,hij⟩ := hi.indep.le_basis_of_le (hi.le.trans hxy), 
+  obtain ⟨b, hb, rfl, fa⟩ := hj.exists_base, 
+  refine ⟨b, by rwa ←(hi.eq_inf_base_of_le_base hb (hij.trans inf_le_right)), hj⟩, 
+end 
 
 end supermatroid

@@ -122,9 +122,97 @@ instance : supermatroid (Ici a) :=
 
   .. (infer_instance : complete_lattice (Ici a)) }
 
-@[simp] lemma indep_Ici_iff_exists_canopy_ge_coe {s : Ici a} :
+lemma base_Ici_iff_coe_canopy {b : Ici a} : 
+  base b ↔ (b : α) canopy_for a := 
+@base_Iic_iff_coe_basis αᵒᵈ _ _ _
+
+lemma base_Ici_iff_eq_sup_and_inf_basis {s : Ici a} : 
+  base s ↔ ∃ b, base b ∧ (s : α) = a ⊔ b ∧ a ⊓ b basis_for a :=
+begin
+  obtain ⟨s,(hs : a ≤ s)⟩ := s, 
+  rw [base_Ici_iff_coe_canopy, coe_mk], 
+  refine ⟨λ h, _, by {rintros ⟨_,h,rfl,_⟩, rwa h.sup_canopy_iff_inf_basis}⟩,
+  obtain ⟨b, hb, rfl ,h'⟩ := h.exists_base, 
+  exact ⟨_,hb,rfl,hb.sup_canopy_iff_inf_basis.mp h⟩, 
+end 
+
+lemma base.sup_base_Ici_iff (hb : base b) : 
+  base (⟨a ⊔ b, @le_sup_left _ _ a b⟩ : Ici a) ↔ a ⊓ b basis_for a := 
+by rw [base_Ici_iff_coe_canopy, coe_mk, hb.sup_canopy_iff_inf_basis]
+
+lemma base.sup_base_Ici_of_inf_basis (hb : base b) (hab : a ⊓ b basis_for a):
+  base (⟨a ⊔ b, @le_sup_left _ _ a b⟩ : Ici a) := 
+hb.sup_base_Ici_iff.mpr hab 
+
+lemma indep_Ici_iff_exists_canopy_ge_coe {s : Ici a} :
   indep s ↔ ∃ t, t canopy_for a ∧ (s : α) ≤ t := 
 @spanning_Iic_iff_exists_basis_le_coe αᵒᵈ _ _ s
+
+lemma indep_Ici_iff_coe_le_sup_base {i : Ici a} : 
+  indep i ↔ ∃ b, base b ∧ (a ⊓ b) basis_for a ∧ (i : α) ≤ a ⊔ b := 
+begin
+  rw indep_Ici_iff_exists_canopy_ge_coe, 
+  split, 
+  { rintros ⟨t,hta,hit⟩, 
+    obtain ⟨b,hb,rfl,hmin⟩ := hta.exists_base, 
+    exact ⟨_, hb, hb.sup_canopy_iff_inf_basis.mp hta, hit⟩},
+  rintros ⟨b,hb,hab,hiab⟩, 
+  refine ⟨_, hb.sup_canopy_iff_inf_basis.mpr hab, hiab⟩, 
+end 
+
+lemma foo_Ici {i x : α} (hix : i basis_for x) : 
+  ∃ (j : Ici a), (j :α) ≤ a ⊔ i ∧ j basis_for ⟨a ⊔ x, (le_sup_left : a ≤ a ⊔ x)⟩ :=
+begin
+  obtain ⟨⟨k,(hak : a ≤ k)⟩,hk⟩ := exists_basis (⟨a ⊔ i, (le_sup_left : a ≤ a ⊔ i)⟩ : Ici a), 
+  refine ⟨⟨k,hak⟩,hk.le, hk.indep, mk_le_mk.mpr (le_trans hk.le (sup_le_sup_left hix.le _)),_⟩, 
+  rintros ⟨j,(hja : a ≤ j)⟩ hji hjax hkj, 
+  refine hk.eq_of_le_indep hji hkj (mk_le_mk.mpr _), 
+  
+  --obtain ⟨b,hb,hab,hjab⟩ := indep_Ici_iff_coe_le_sup_base.mp hji, 
+
+  --rw mk_le_mk at *, rw mk_eq_mk, 
+  
+  --rintros ⟨⟨j,(hja : a ≤ j)⟩, _⟩, 
+
+end 
+
+-- lemma basis_Ici_iff {i x : Ici a} : 
+--   i basis_for x ↔ ∃ b, base b ∧ (a ⊓ b) basis_for a ∧ (i :α) = x ⊓ (a ⊔ b) ∧ 
+--     ∀ b', base b' → (a ⊓ b') basis_for a → a ⊓ b ≤ b' → a ⊓ b = a ⊓ b' := 
+-- begin
+  
+--   obtain ⟨⟨i, (hai : a ≤ i)⟩,⟨x, (hax : a ≤ x)⟩⟩ := ⟨i,x⟩, 
+  
+   
+--   simp_rw coe_mk at *, 
+--   refine ⟨λ h, _, λ h, _⟩, 
+--   { obtain ⟨⟨s,h₀⟩,hs, hixs, hforall⟩ := h.exists_base, 
+--     rw [base_Ici_iff_coe_canopy, coe_mk] at hs, 
+--     obtain ⟨b,hb,rfl,hmax⟩ := hs.exists_base, 
+--     simp only [subtype.mk_sup, subtype.mk_inf, mk_eq_mk] at *, 
+--     subst hixs,
+--     rw hb.sup_canopy_iff_inf_basis at hs, 
+--     refine ⟨b,hb,hs,rfl,λ b' hb' hab' hb'b, _⟩, 
+    
+--     have := hforall _ (hb'.sup_base_Ici_of_inf_basis hab') 
+--       (mk_le_mk.mpr (by {rw [inf_comm, sup_inf_assoc_of_le _ hax, inf_comm], 
+--         refine sup_le le_sup_left _, 
+--         have := hab'.eq_of_le_indep (hb.inf_left_indep x) sorry, 
+--          })), 
+    
+
+    
+    
+--      },
+  
+--   -- { rintros ⟨⟨b,hb,hab,hiab⟩,hix, hmax⟩,  
+--   --   simp_rw coe_mk at *, 
+--   --   refine ⟨b, hb, hab, (le_inf (mk_le_mk.mp hix) hiab).antisymm _, _⟩, 
+     
+--   --   { },
+  
+-- end 
+  
 
 -- lemma foo {a : α} {i x : Iic a} {j : α} (hix : i basis_for x) (hji : j basis_for i) 
 -- (haj : a ⊓ j basis_for a) : j basis_for x := 
