@@ -373,14 +373,55 @@ lemma canopy_for.canopy_inf_mono (hsx : s canopy_for x) (ht : spanning t) (hts :
 
  
 
-lemma le_basis_nested {n : ℕ} {X : list α} (h : X.sorted (≤)) : 
-  ∃ b, base b ∧ ∀ x ∈ X, x ⊓ b basis_for x :=
-begin
-  obtain (rfl | ⟨a,X⟩) := X, 
-  exact (exists_base α).imp (λ b hb, ⟨hb, λ x hx, (list.not_mem_nil _ hx).elim⟩),  
+-- lemma le_basis_nested {n : ℕ} (x : fin n → α) (h : monotone x) : 
+--   ∃ b, base b ∧ ∀ i, x i ⊓ b basis_for x i :=
+-- begin
+--   obtain (rfl | n) := n, exact (exists_base α).imp (λ b hb, ⟨hb, fin_zero_elim⟩),  
+--   suffices hk : ∀ (k : fin n.succ), ∃ b, base b ∧ ∀ (i : fin n.succ), i ≤ k → x i ⊓ b basis_for x i, 
+--     from (hk (fin.last n)).imp (λ b hb, ⟨hb.1, λ i, hb.2 _ (fin.le_last _)⟩),
+--   obtain ⟨b0,⟨hb0,hb0'⟩⟩ := exists_base_inf_basis (x 0), 
+--   refine λ k, fin.induction_on k ⟨b0, hb0, λ i hi, by rwa hi.antisymm (fin.zero_le _)⟩ _,
+--   rintros i ⟨b1,hb1,hib1⟩, 
+--   --obtain ⟨j,hj⟩ := (hib1 _ rfl.le).indep.le_basis_of_le -, 
+
+--   obtain ⟨j,hj,hjb1⟩ := (hib1  _ rfl.le).indep.le_basis_of_le 
+--     (inf_le_left.trans (h (fin.cast_succ_lt_succ i).le)),
+  
+--   obtain ⟨b,hb,hjb⟩ := hj.indep, 
+--   have := hj.eq_inf_base_of_le_base hb hjb, subst this,  
+--   refine ⟨b,hb, λ i₀ hi₀i, hi₀i.lt_or_eq.elim (λ hj', _) (by {rintro rfl, assumption })⟩, 
+  
+  
+
+--   convert hib1 _ (fin.le_cast_succ_iff.mpr hj') using 1, 
+--   refine le_antisymm (le_inf inf_le_left _) (le_inf inf_le_left _), 
+--   { },
+  
+
+  
+  
+   
+  
+  
+  
+--    --indep.le_basis_of_le
+
+  -- exact ((exists_base_inf_basis (x 0)).imp (λ b hb, 
+  --   ⟨hb.1,λ i hi, by {rw (le_antisymm hi (fin.zero_le i)), exact hb.2}⟩) 
+  
+
+  
+
+  -- refine fin.cases _ (λ i, _),
+  -- exact ) , 
+  
+  
+
+  
 
 
-end 
+
+--end 
   -- obtain (rfl | n) := n, 
   -- exact (exists_base α).imp (λ b hb, ⟨hb, fin_zero_elim⟩),
 
@@ -419,20 +460,12 @@ end
   -- rintros i ⟨b₀,hb₀⟩, 
   
 
-
-  
-  
-  
-
-
-  
-
-lemma le_basis₂ {x y : α} (hxy : x ≤ y) : ∃ b, x ⊓ b basis_for x ∧ y ⊓ b basis_for y := 
-begin
-  obtain ⟨i,hi⟩ := exists_basis x, 
-  obtain ⟨j,hj,hij⟩ := hi.indep.le_basis_of_le (hi.le.trans hxy), 
-  obtain ⟨b, hb, rfl, fa⟩ := hj.exists_base, 
-  refine ⟨b, by rwa ←(hi.eq_inf_base_of_le_base hb (hij.trans inf_le_right)), hj⟩, 
-end 
+-- lemma le_basis₂ {x y : α} (hxy : x ≤ y) : ∃ b, x ⊓ b basis_for x ∧ y ⊓ b basis_for y := 
+-- begin
+--   obtain ⟨i,hi⟩ := exists_basis x, 
+--   obtain ⟨j,hj,hij⟩ := hi.indep.le_basis_of_le (hi.le.trans hxy), 
+--   obtain ⟨b, hb, rfl, fa⟩ := hj.exists_base, 
+--   exact ⟨b, by rwa ←(hi.eq_inf_base_of_le_base hb (hij.trans inf_le_right)), hj⟩, 
+-- end 
 
 end supermatroid
